@@ -284,6 +284,31 @@
         <table><thead><tr><th>#</th><th>Member</th><th>Sign-Ins</th></tr></thead><tbody id="m1000-list"></tbody></table></div>
     </div>
 
+    <!-- FINANCIALS PAGE -->
+    <div class="page" id="page-financials">
+      <div class="upload-area" id="upload-area" onclick="document.getElementById('fin-upload').click()">
+        <div class="upload-icon">📂</div>
+        <div class="upload-title">Upload Monthly P&L</div>
+        <div class="upload-sub">Drag & drop or click to upload your QuickBooks P&L (.xlsx)</div>
+        <input type="file" id="fin-upload" class="upload-input" accept=".xlsx,.xls" onchange="handleFinUpload(event)">
+      </div>
+      <div class="fin-grid" id="fin-summary" style="display:none">
+        <div class="fin-card positive"><div class="fin-label">Total Revenue</div><div class="fin-value" id="fin-revenue">—</div><div class="fin-sub" id="fin-revenue-sub">Quarter total</div></div>
+        <div class="fin-card negative"><div class="fin-label">Total Expenses</div><div class="fin-value" id="fin-expenses">—</div><div class="fin-sub">Quarter total</div></div>
+        <div class="fin-card neutral"><div class="fin-label">Net Income</div><div class="fin-value" id="fin-net">—</div><div class="fin-sub">Quarter total</div></div>
+        <div class="fin-card accent"><div class="fin-label">Profit Margin</div><div class="fin-value" id="fin-margin">—</div><div class="fin-sub">Net / Revenue</div></div>
+      </div>
+      <div class="fin-months" id="fin-months" style="display:none"></div>
+      <div class="section-block" id="fin-revenue-block" style="display:none">
+        <div class="section-header"><span class="section-title">💵 REVENUE BREAKDOWN</span><span class="section-count" id="fin-period">—</span></div>
+        <div style="padding:16px 18px"><div class="revenue-bar" id="fin-revenue-bars"></div></div>
+      </div>
+      <div class="section-block" id="fin-expense-block" style="display:none">
+        <div class="section-header"><span class="section-title">💸 EXPENSE BREAKDOWN</span></div>
+        <div style="padding:16px 18px"><div class="revenue-bar" id="fin-expense-bars"></div></div>
+      </div>
+    </div>
+
   </div>
 </main>
 
