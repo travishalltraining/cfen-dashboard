@@ -371,7 +371,7 @@
 </main>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw3o83-lYKB1cFlHwq8BpXTKUFNAhoC9-A5xYjmYaYfJzzEXsruqdaX4X1p_0Li08U1/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2Kssan0VYjOpvki1CCzwNxZ2EamGJQfEiQtaQjcheFpi3AAy0eGbLLqw0ZscWHig_/exec';
 const pageTitles = {summary:'DAILY SUMMARY',members:'ALL MEMBERS',risk:'AT-RISK MEMBERS',expiring:'NEW & EXPIRING',signins:'CLASS USAGE',milestones:'MILESTONES',financials:'FINANCIAL HEALTH'};
 const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 let allMembersData = [];
@@ -591,6 +591,9 @@ function renderData(data){
   makeBarChart('sgpt-time-chart', data.sgptByTime || [], 'class_time', 'sgpt');
   makeDayChart('sgpt-day-chart',  data.sgptByDay  || [], 'sgpt');
 
+  // Load financial data from BigQuery
+  if(data.financials && data.financials.length) loadFinFromBQ(data.financials);
+
   // Milestones — within 10 of each benchmark
   const ms = data.milestones || [];
   renderMS('m100-list',  ms, 100);
@@ -623,6 +626,43 @@ loadLive();
 
 // ── FINANCIALS ─────────────────────────────────────────────
 let finData = JSON.parse(localStorage.getItem('cfen_financials') || '{}');
+
+function loadFinFromBQ(bqRows){
+  // Merge BigQuery data into finData (BQ wins over localStorage)
+  if(!bqRows || !bqRows.length) return;
+  bqRows.forEach(r=>{
+    const key = r.report_year + '-' + r.report_month;
+    finData[key] = {
+      month: r.report_month,
+      year: r.report_year,
+      membership: parseFloat(r.membership)||0,
+      'semi-private-training': parseFloat(r.semi_private_training)||0,
+      'elements-training': parseFloat(r.elements_training)||0,
+      'mobile-private-training': parseFloat(r.mobile_private_training)||0,
+      'drop-in-sales': parseFloat(r.drop_in_sales)||0,
+      'vending-sales': parseFloat(r.vending_sales)||0,
+      'apparel-sales': parseFloat(r.apparel_sales)||0,
+      'personal-training': parseFloat(r.personal_training)||0,
+      'other-income': parseFloat(r.other_income)||0,
+      payroll: parseFloat(r.payroll)||0,
+      rent: parseFloat(r.rent)||0,
+      'advertising---marketing': parseFloat(r.advertising_marketing)||0,
+      'coaching-pay': parseFloat(r.coaching_pay)||0,
+      'admin-pay': parseFloat(r.admin_pay)||0,
+      'gym-equipment': parseFloat(r.gym_equipment)||0,
+      insurance: parseFloat(r.insurance)||0,
+      utilities: parseFloat(r.utilities)||0,
+      supplies: parseFloat(r.supplies)||0,
+      'software---apps': parseFloat(r.software_apps)||0,
+      'other-expenses': parseFloat(r.other_expenses)||0,
+      total_revenue: parseFloat(r.total_revenue)||0,
+      total_expenses: parseFloat(r.total_expenses)||0,
+      net_income: parseFloat(r.net_income)||0,
+    };
+  });
+  localStorage.setItem('cfen_financials', JSON.stringify(finData));
+  renderFinDisplay();
+}
 
 const REV_FIELDS = ['membership','semi-private-training','elements-training','mobile-private-training','drop-in-sales','vending-sales','apparel-sales','personal-training','other-income'];
 const EXP_FIELDS = ['payroll','rent','advertising---marketing','coaching-pay','admin-pay','gym-equipment','insurance','utilities','supplies','software---apps','other-expenses'];
@@ -670,14 +710,37 @@ function calcFinTotals(){
 }
 
 function saveFinMonth(){
-  const key = getFinKey();
-  const entry = {};
+  const month = document.getElementById('fin-month').value;
+  const year  = document.getElementById('fin-year').value;
+  const entry = { month, year };
   REV_FIELDS.forEach(f=>{ const el=document.getElementById('fin-'+f); entry[f]=parseFloat(el&&el.value)||0; });
   EXP_FIELDS.forEach(f=>{ const el=document.getElementById('fin-'+f); entry[f]=parseFloat(el&&el.value)||0; });
+  entry.total_revenue  = REV_FIELDS.reduce((s,f)=>s+(entry[f]||0),0);
+  entry.total_expenses = EXP_FIELDS.reduce((s,f)=>s+(entry[f]||0),0);
+  entry.net_income     = entry.total_revenue - entry.total_expenses;
+
+  // Save to localStorage as backup
+  const key = year + '-' + month;
   finData[key] = entry;
   localStorage.setItem('cfen_financials', JSON.stringify(finData));
-  document.getElementById('fin-form').style.display = 'none';
-  renderFinDisplay();
+
+  // Save to BigQuery via Apps Script POST
+  const btn = document.querySelector('[onclick="saveFinMonth()"]');
+  if(btn){ btn.textContent = '⏳ Saving…'; btn.disabled = true; }
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify(entry)
+  }).then(()=>{
+    document.getElementById('fin-form').style.display = 'none';
+    if(btn){ btn.textContent = '💾 Save Month'; btn.disabled = false; }
+    renderFinDisplay();
+  }).catch(()=>{
+    // POST may fail due to CORS but data is in localStorage
+    document.getElementById('fin-form').style.display = 'none';
+    if(btn){ btn.textContent = '💾 Save Month'; btn.disabled = false; }
+    renderFinDisplay();
+  });
 }
 
 function renderFinDisplay(){
