@@ -287,29 +287,86 @@
 
     <!-- FINANCIALS PAGE -->
     <div class="page" id="page-financials">
-      <div class="upload-area" id="upload-area" onclick="document.getElementById('fin-upload').click()">
-        <div class="upload-icon">📂</div>
-        <div class="upload-title">Upload Monthly P&L</div>
-        <div class="upload-sub">Drag & drop or click to upload your QuickBooks P&L (.xlsx)</div>
-        <input type="file" id="fin-upload" class="upload-input" accept=".xlsx,.xls" onchange="handleFinUpload(event)">
-      </div>
-      <div class="fin-grid" id="fin-summary" style="display:none">
-        <div class="fin-card positive"><div class="fin-label">Total Revenue</div><div class="fin-value" id="fin-revenue">—</div><div class="fin-sub" id="fin-revenue-sub">Quarter total</div></div>
-        <div class="fin-card negative"><div class="fin-label">Total Expenses</div><div class="fin-value" id="fin-expenses">—</div><div class="fin-sub">Quarter total</div></div>
-        <div class="fin-card neutral"><div class="fin-label">Net Income</div><div class="fin-value" id="fin-net">—</div><div class="fin-sub">Quarter total</div></div>
-        <div class="fin-card accent"><div class="fin-label">Profit Margin</div><div class="fin-value" id="fin-margin">—</div><div class="fin-sub">Net / Revenue</div></div>
-      </div>
-      <div class="fin-months" id="fin-months" style="display:none"></div>
-      <div class="section-block" id="fin-revenue-block" style="display:none">
-        <div class="section-header"><span class="section-title">💵 REVENUE BREAKDOWN</span><span class="section-count" id="fin-period">—</span></div>
-        <div style="padding:16px 18px"><div class="revenue-bar" id="fin-revenue-bars"></div></div>
-      </div>
-      <div class="section-block" id="fin-expense-block" style="display:none">
-        <div class="section-header"><span class="section-title">💸 EXPENSE BREAKDOWN</span></div>
-        <div style="padding:16px 18px"><div class="revenue-bar" id="fin-expense-bars"></div></div>
-      </div>
-    </div>
 
+      <!-- Month/Year selector + Add button -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+        <select id="fin-month" style="background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
+          <option>January</option><option>February</option><option>March</option>
+          <option>April</option><option>May</option><option>June</option>
+          <option>July</option><option>August</option><option>September</option>
+          <option>October</option><option>November</option><option>December</option>
+        </select>
+        <select id="fin-year" style="background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
+          <option>2024</option><option>2025</option><option selected>2026</option><option>2027</option>
+        </select>
+        <button onclick="showFinForm()" style="background:var(--red);border:none;color:white;padding:8px 18px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">+ Add / Edit Month</button>
+      </div>
+
+      <!-- Entry Form -->
+      <div class="section-block" id="fin-form" style="display:none;margin-bottom:18px;">
+        <div class="section-header"><span class="section-title">📝 ENTER MONTHLY DATA</span><span id="fin-form-title" style="color:var(--text-dim);font-size:12px;"></span></div>
+        <div style="padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1.5px;color:var(--green);margin-bottom:12px;">REVENUE</div>
+            ${['Membership','Semi Private Training','Elements Training','Mobile Private Training','Drop In Sales','Vending Sales','Apparel Sales','Personal Training','Other Income'].map(f=>`
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:180px;flex-shrink:0;">${f}</label>
+              <input type="number" id="fin-${f.replace(/\s+/g,'-').toLowerCase()}" placeholder="0" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:120px;outline:none;" oninput="calcFinTotals()">
+            </div>`).join('')}
+            <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid var(--border);">
+              <label style="font-size:12px;color:var(--green);font-weight:600;width:180px;">Total Revenue</label>
+              <div id="fin-total-rev" style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);">$0</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1.5px;color:var(--red);margin-bottom:12px;">EXPENSES</div>
+            ${['Payroll','Rent','Advertising & Marketing','Coaching Pay','Admin Pay','Gym Equipment','Insurance','Utilities','Supplies','Software & Apps','Other Expenses'].map(f=>`
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:180px;flex-shrink:0;">${f}</label>
+              <input type="number" id="fin-${f.replace(/[\s&]+/g,'-').replace(/-+/g,'-').toLowerCase()}" placeholder="0" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:120px;outline:none;" oninput="calcFinTotals()">
+            </div>`).join('')}
+            <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid var(--border);">
+              <label style="font-size:12px;color:var(--red);font-weight:600;width:180px;">Total Expenses</label>
+              <div id="fin-total-exp" style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--red);">$0</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid var(--border);">
+              <label style="font-size:12px;color:var(--white);font-weight:600;width:180px;">Net Income</label>
+              <div id="fin-total-net" style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);">$0</div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:0 24px 20px;display:flex;gap:10px;">
+          <button onclick="saveFinMonth()" style="background:var(--red);border:none;color:white;padding:9px 20px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">💾 Save Month</button>
+          <button onclick="document.getElementById('fin-form').style.display='none'" style="background:var(--card);border:1px solid var(--border);color:var(--text-mid);padding:9px 20px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Saved months display -->
+      <div id="fin-display" style="display:none;">
+        <div class="fin-grid" id="fin-summary">
+          <div class="fin-card positive"><div class="fin-label">YTD Revenue</div><div class="fin-value" id="fin-ytd-rev">—</div><div class="fin-sub" id="fin-ytd-period">—</div></div>
+          <div class="fin-card negative"><div class="fin-label">YTD Expenses</div><div class="fin-value" id="fin-ytd-exp">—</div><div class="fin-sub">Year to date</div></div>
+          <div class="fin-card neutral"><div class="fin-label">YTD Net Income</div><div class="fin-value" id="fin-ytd-net">—</div><div class="fin-sub">Year to date</div></div>
+          <div class="fin-card accent"><div class="fin-label">Avg Profit Margin</div><div class="fin-value" id="fin-ytd-margin">—</div><div class="fin-sub">YTD average</div></div>
+        </div>
+        <div class="fin-months" id="fin-months"></div>
+        <div class="section-block" id="fin-revenue-block">
+          <div class="section-header"><span class="section-title">💵 YTD REVENUE BREAKDOWN</span></div>
+          <div style="padding:16px 18px"><div class="revenue-bar" id="fin-revenue-bars"></div></div>
+        </div>
+        <div class="section-block" id="fin-expense-block">
+          <div class="section-header"><span class="section-title">💸 YTD EXPENSE BREAKDOWN</span></div>
+          <div style="padding:16px 18px"><div class="revenue-bar" id="fin-expense-bars"></div></div>
+        </div>
+      </div>
+
+      <div id="fin-empty" style="text-align:center;padding:60px;color:var(--text-dim);">
+        <div style="font-size:40px;margin-bottom:12px;">💰</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--text-mid);margin-bottom:6px;">No Financial Data Yet</div>
+        <div style="font-size:13px;">Select a month and click "Add / Edit Month" to get started</div>
+      </div>
+
+    </div>
   </div>
 </main>
 
@@ -564,185 +621,131 @@ function loadLive(){
 setDate();
 loadLive();
 
-// ── FINANCIALS ────────────────────────────────────────────
-function fmt$(n){ return '$' + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+// ── FINANCIALS ─────────────────────────────────────────────
+let finData = JSON.parse(localStorage.getItem('cfen_financials') || '{}');
+
+const REV_FIELDS = ['membership','semi-private-training','elements-training','mobile-private-training','drop-in-sales','vending-sales','apparel-sales','personal-training','other-income'];
+const EXP_FIELDS = ['payroll','rent','advertising---marketing','coaching-pay','admin-pay','gym-equipment','insurance','utilities','supplies','software---apps','other-expenses'];
+const REV_LABELS = ['Membership','Semi Private Training','Elements Training','Mobile Private Training','Drop In Sales','Vending Sales','Apparel Sales','Personal Training','Other Income'];
+const EXP_LABELS = ['Payroll','Rent','Advertising & Marketing','Coaching Pay','Admin Pay','Gym Equipment','Insurance','Utilities','Supplies','Software & Apps','Other Expenses'];
+
+function fmt$(n){ return '$' + Math.abs(n||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}); }
 function fmtPct(n){ return (n>=0?'+':'')+n.toFixed(1)+'%'; }
 
-function handleFinUpload(e){
-  const file = e.target.files[0];
-  if(!file) return;
-  document.getElementById('upload-area').innerHTML = '<div class="upload-icon">⏳</div><div class="upload-title">Parsing ' + file.name + '...</div>';
-  const reader = new FileReader();
-  reader.onload = function(ev){
-    try {
-      parseXLSX(ev.target.result);
-    } catch(err){
-      alert('Error: ' + err.message);
-      console.error(err);
-    }
-  };
-  reader.onerror = ()=>alert('Could not read file.');
-  reader.readAsArrayBuffer(file);
+function getFinKey(){
+  const m = document.getElementById('fin-month').value;
+  const y = document.getElementById('fin-year').value;
+  return `${y}-${m}`;
 }
 
-function loadSheetJS(cb){
-  const s = document.createElement('script');
-  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-  s.onload = cb;
-  document.head.appendChild(s);
+function showFinForm(){
+  const key = getFinKey();
+  const m = document.getElementById('fin-month').value;
+  const y = document.getElementById('fin-year').value;
+  document.getElementById('fin-form-title').textContent = m + ' ' + y;
+  document.getElementById('fin-form').style.display = 'block';
+
+  // Load existing data if any
+  const existing = finData[key] || {};
+  REV_FIELDS.forEach(f => {
+    const el = document.getElementById('fin-' + f);
+    if(el) el.value = existing[f] || '';
+  });
+  EXP_FIELDS.forEach(f => {
+    const el = document.getElementById('fin-' + f);
+    if(el) el.value = existing[f] || '';
+  });
+  calcFinTotals();
 }
 
-function parseXLSX(data){
-  const XLSX = window.XLSX;
-  const wb = XLSX.read(data, {type:'arraybuffer'});
-  const sheetName = wb.SheetNames.find(n=>n.toLowerCase().includes("p&l")||n.toLowerCase().includes("profit")) || wb.SheetNames[0];
-  const ws = wb.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
-  renderFinancials(rows);
+function calcFinTotals(){
+  const rev = REV_FIELDS.reduce((s,f)=>{ const el=document.getElementById('fin-'+f); return s+(parseFloat(el&&el.value)||0); },0);
+  const exp = EXP_FIELDS.reduce((s,f)=>{ const el=document.getElementById('fin-'+f); return s+(parseFloat(el&&el.value)||0); },0);
+  const net = rev - exp;
+  document.getElementById('fin-total-rev').textContent = fmt$(rev);
+  document.getElementById('fin-total-exp').textContent = fmt$(exp);
+  const netEl = document.getElementById('fin-total-net');
+  netEl.textContent = fmt$(net);
+  netEl.style.color = net>=0?'var(--green)':'var(--red)';
 }
 
-function renderFinancials(rows){
-  // QuickBooks format: col 0 = label, cols 1-N = months, last data col = Total
-  // Header row has month names like "Jan 2026", "Feb 2026" etc
+function saveFinMonth(){
+  const key = getFinKey();
+  const entry = {};
+  REV_FIELDS.forEach(f=>{ const el=document.getElementById('fin-'+f); entry[f]=parseFloat(el&&el.value)||0; });
+  EXP_FIELDS.forEach(f=>{ const el=document.getElementById('fin-'+f); entry[f]=parseFloat(el&&el.value)||0; });
+  finData[key] = entry;
+  localStorage.setItem('cfen_financials', JSON.stringify(finData));
+  document.getElementById('fin-form').style.display = 'none';
+  renderFinDisplay();
+}
 
-  // Step 1: find header row
-  const monthPat = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i;
-  let headerIdx = -1;
-  for(let i=0;i<rows.length;i++){
-    const r = rows[i] || [];
-    // Check ALL columns for month pattern
-    for(let j=0;j<r.length;j++){
-      if(r[j] && monthPat.test(String(r[j]).trim())){
-        headerIdx = i;
-        break;
-      }
-    }
-    if(headerIdx>=0) break;
-  }
-
-  if(headerIdx < 0){
-    alert('Could not find month columns in this file.');
+function renderFinDisplay(){
+  const keys = Object.keys(finData).sort();
+  if(!keys.length){
+    document.getElementById('fin-empty').style.display='block';
+    document.getElementById('fin-display').style.display='none';
     return;
   }
+  document.getElementById('fin-empty').style.display='none';
+  document.getElementById('fin-display').style.display='block';
 
-  // Step 2: map column indices
-  const header = rows[headerIdx] || [];
-  const months = [];
-  let totalCol = -1;
-  header.forEach((h,i)=>{
-    if(h === null || h === undefined) return;
-    const s = String(h).trim();
-    if(!s) return;
-    if(s.toLowerCase() === 'total') { totalCol = i; }
-    else if(monthPat.test(s)) { months.push({name:s, col:i}); }
+  // YTD totals for current year
+  const year = document.getElementById('fin-year').value;
+  const yearKeys = keys.filter(k=>k.startsWith(year));
+
+  let ytdRev=0, ytdExp=0, ytdNet=0;
+  const ytdRevBreakdown = {};
+  const ytdExpBreakdown = {};
+  REV_FIELDS.forEach(f=>ytdRevBreakdown[f]=0);
+  EXP_FIELDS.forEach(f=>ytdExpBreakdown[f]=0);
+
+  yearKeys.forEach(k=>{
+    const d = finData[k];
+    const rev = REV_FIELDS.reduce((s,f)=>s+(d[f]||0),0);
+    const exp = EXP_FIELDS.reduce((s,f)=>s+(d[f]||0),0);
+    ytdRev += rev; ytdExp += exp; ytdNet += (rev-exp);
+    REV_FIELDS.forEach(f=>ytdRevBreakdown[f]+=(d[f]||0));
+    EXP_FIELDS.forEach(f=>ytdExpBreakdown[f]+=(d[f]||0));
   });
 
-  // Step 3: find row by label in column 0
-  const find = (...labels) => {
-    for(const label of labels){
-      for(const row of rows){
-        if(!row || row[0]===null || row[0]===undefined) continue;
-        const cell = String(row[0]).trim();
-        if(cell.toLowerCase() === label.toLowerCase()){
-          const vals = {};
-          months.forEach(m=>{
-            const v = row[m.col];
-            vals[m.name] = (typeof v === 'number') ? v : (parseFloat(v) || 0);
-          });
-          if(totalCol >= 0){
-            const tv = row[totalCol];
-            vals['Total'] = (typeof tv === 'number') ? tv : (parseFloat(tv) || 0);
-          } else {
-            vals['Total'] = months.reduce((s,m)=>s+(vals[m.name]||0), 0);
-          }
-          return vals;
-        }
-      }
-    }
-    return null;
-  };
+  const margin = ytdRev>0?(ytdNet/ytdRev*100):0;
+  document.getElementById('fin-ytd-rev').textContent = fmt$(ytdRev);
+  document.getElementById('fin-ytd-exp').textContent = fmt$(ytdExp);
+  document.getElementById('fin-ytd-net').textContent = fmt$(ytdNet);
+  document.getElementById('fin-ytd-net').style.color = ytdNet>=0?'var(--green)':'var(--red)';
+  document.getElementById('fin-ytd-margin').textContent = fmtPct(margin);
+  document.getElementById('fin-ytd-margin').style.color = margin>=0?'var(--green)':'var(--red)';
+  document.getElementById('fin-ytd-period').textContent = yearKeys.length + ' months in ' + year;
 
-  const revenue    = find('Total for Income', 'Gross Profit', 'Total Income');
-  const expenses   = find('Total for Expenses', 'Total Expenses');
-  const netIncome  = find('Net Income', 'Net Profit');
-  const netOpInc   = find('Net Operating Income');
-  const payroll    = find('Total for Payroll expenses', 'Total Payroll');
-  const rent       = find('Total for Rent', 'Rent');
-  const adv        = find('Total for Advertising & marketing', 'Total Advertising');
-  const membership = find('Membership');
-  const sgpt       = find('Semi Private Training');
-  const dropIn     = find('Drop In Sales');
-  const elements   = find('Elements Training');
-  const vending    = find('Vending Sales');
-  const mobile     = find('Mobile Private Training');
-  const apparel    = find('Apparel Sales');
-  const coaching   = find('Coaching Pay');
-  const adminPay   = find('Administrative Pay');
-
-  if(!revenue){
-    alert('Could not find revenue data. Make sure this is a QuickBooks P&L export.');
-    return;
-  }
-
-  const totalRev = revenue.Total || 0;
-  const totalExp = expenses ? Math.abs(expenses.Total || 0) : 0;
-  const totalNet = netIncome ? (netIncome.Total || 0) : (totalRev - totalExp);
-  const margin   = totalRev > 0 ? (totalNet / totalRev * 100) : 0;
-  const period   = months.map(m=>m.name).join(' – ');
-
-  // Show summary cards
-  document.getElementById('fin-summary').style.display = 'grid';
-  document.getElementById('fin-revenue').textContent   = fmt$(totalRev);
-  document.getElementById('fin-expenses').textContent  = fmt$(totalExp);
-  document.getElementById('fin-net').textContent       = fmt$(totalNet);
-  document.getElementById('fin-net').style.color       = totalNet>=0 ? 'var(--green)' : 'var(--red)';
-  document.getElementById('fin-margin').textContent    = fmtPct(margin);
-  document.getElementById('fin-margin').style.color    = margin>=0 ? 'var(--green)' : 'var(--red)';
-  document.getElementById('fin-revenue-sub').textContent = months.length>1 ? 'YTD total' : 'Monthly total';
-  document.getElementById('fin-period').textContent   = period;
-
-  // Month cards + YTD column
-  const allCols = [...months];
-  if(months.length > 1 && totalCol >= 0) allCols.push({name:'YTD Total', col:totalCol, isTotal:true});
-
-  document.getElementById('fin-months').style.display = 'grid';
-  document.getElementById('fin-months').style.gridTemplateColumns = `repeat(${allCols.length},1fr)`;
-  document.getElementById('fin-months').innerHTML = allCols.map(m => {
-    const g = (obj) => {
-      if(!obj) return 0;
-      const v = obj[m.name];
-      return (typeof v === 'number') ? v : (parseFloat(v) || 0);
-    };
-    const rev = g(revenue);
-    const exp = Math.abs(g(expenses) || 0);
-    const net = netIncome ? g(netIncome) : (rev - exp);
-    const nop = netOpInc ? g(netOpInc) : null;
-    const mgn = rev > 0 ? (net / rev * 100) : 0;
-    return `<div class="fin-month" style="${m.isTotal?'border:1px solid var(--gold);':''}">
-      <div class="fin-month-title" style="${m.isTotal?'color:var(--gold)':''}">${m.isTotal?'📊 ':''}${m.name}</div>
+  // Monthly cards
+  const months = document.getElementById('fin-months');
+  months.style.display = 'grid';
+  months.style.gridTemplateColumns = `repeat(${Math.min(yearKeys.length,4)},1fr)`;
+  months.innerHTML = yearKeys.map(k=>{
+    const d = finData[k];
+    const rev = REV_FIELDS.reduce((s,f)=>s+(d[f]||0),0);
+    const exp = EXP_FIELDS.reduce((s,f)=>s+(d[f]||0),0);
+    const net = rev-exp;
+    const mgn = rev>0?(net/rev*100):0;
+    const label = k.replace(year+'-','');
+    return `<div class="fin-month">
+      <div class="fin-month-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>${label}</span>
+        <button onclick="editMonth('${k}')" style="background:none;border:1px solid var(--border);color:var(--text-dim);padding:2px 8px;border-radius:4px;font-size:10px;cursor:pointer;">Edit</button>
+      </div>
       <div class="fin-row"><span class="fin-row-label">Revenue</span><span class="fin-row-val pos">${fmt$(rev)}</span></div>
       <div class="fin-row"><span class="fin-row-label">Expenses</span><span class="fin-row-val neg">${fmt$(exp)}</span></div>
-      ${payroll ? `<div class="fin-row"><span class="fin-row-label">└ Payroll</span><span class="fin-row-val">${fmt$(Math.abs(g(payroll)))}</span></div>` : ''}
-      ${rent ? `<div class="fin-row"><span class="fin-row-label">└ Rent</span><span class="fin-row-val">${fmt$(Math.abs(g(rent)))}</span></div>` : ''}
-      ${adv ? `<div class="fin-row"><span class="fin-row-label">└ Advertising</span><span class="fin-row-val">${fmt$(Math.abs(g(adv)))}</span></div>` : ''}
-      ${nop !== null ? `<div class="fin-row"><span class="fin-row-label">Net Op. Income</span><span class="fin-row-val ${nop>=0?'pos':'neg'}">${fmt$(nop)}</span></div>` : ''}
+      <div class="fin-row"><span class="fin-row-label">Payroll</span><span class="fin-row-val">${fmt$(d['payroll']||0)}</span></div>
+      <div class="fin-row"><span class="fin-row-label">Rent</span><span class="fin-row-val">${fmt$(d['rent']||0)}</span></div>
       <div class="fin-row total-row"><span class="fin-row-label">Net Income</span><span class="fin-row-val ${net>=0?'pos':'neg'}">${fmt$(net)}</span></div>
       <div class="fin-row"><span class="fin-row-label">Margin</span><span class="fin-row-val ${mgn>=0?'pos':'neg'}">${fmtPct(mgn)}</span></div>
     </div>`;
   }).join('');
 
-  // Revenue breakdown bars
-  document.getElementById('fin-revenue-block').style.display = 'block';
-  const revItems = [
-    {label:'Membership',     val: membership ? Math.abs(membership.Total||0) : 0},
-    {label:'Semi Private PT',val: sgpt       ? Math.abs(sgpt.Total||0)       : 0},
-    {label:'Mobile PT',      val: mobile     ? Math.abs(mobile.Total||0)     : 0},
-    {label:'Elements',       val: elements   ? Math.abs(elements.Total||0)   : 0},
-    {label:'Drop Ins',       val: dropIn     ? Math.abs(dropIn.Total||0)     : 0},
-    {label:'Vending',        val: vending    ? Math.abs(vending.Total||0)    : 0},
-    {label:'Apparel',        val: apparel    ? Math.abs(apparel.Total||0)    : 0},
-  ].filter(x=>x.val>0).sort((a,b)=>b.val-a.val);
-  const maxR = Math.max(...revItems.map(x=>x.val), 1);
+  // Revenue bars
+  const revItems = REV_FIELDS.map((f,i)=>({label:REV_LABELS[i],val:ytdRevBreakdown[f]})).filter(x=>x.val>0).sort((a,b)=>b.val-a.val);
+  const maxR = Math.max(...revItems.map(x=>x.val),1);
   document.getElementById('fin-revenue-bars').innerHTML = revItems.map(r=>`
     <div class="rev-row">
       <div class="rev-label">${r.label}</div>
@@ -750,34 +753,27 @@ function renderFinancials(rows){
       <div class="rev-val">${fmt$(r.val)}</div>
     </div>`).join('');
 
-  // Expense breakdown bars
-  document.getElementById('fin-expense-block').style.display = 'block';
-  const expItems = [
-    {label:'Payroll',     val: payroll  ? Math.abs(payroll.Total||0)  : 0},
-    {label:'Rent',        val: rent     ? Math.abs(rent.Total||0)     : 0},
-    {label:'Advertising', val: adv      ? Math.abs(adv.Total||0)      : 0},
-    {label:'Coaching Pay',val: coaching ? Math.abs(coaching.Total||0) : 0},
-    {label:'Admin Pay',   val: adminPay ? Math.abs(adminPay.Total||0) : 0},
-  ].filter(x=>x.val>0).sort((a,b)=>b.val-a.val);
-  const maxE = Math.max(...expItems.map(x=>x.val), 1);
+  // Expense bars
+  const expItems = EXP_FIELDS.map((f,i)=>({label:EXP_LABELS[i],val:ytdExpBreakdown[f]})).filter(x=>x.val>0).sort((a,b)=>b.val-a.val);
+  const maxE = Math.max(...expItems.map(x=>x.val),1);
   document.getElementById('fin-expense-bars').innerHTML = expItems.map(r=>`
     <div class="rev-row">
       <div class="rev-label">${r.label}</div>
       <div class="rev-track"><div class="rev-fill expense" style="width:${Math.round(r.val/maxE*100)}%"></div></div>
       <div class="rev-val">${fmt$(r.val)}</div>
     </div>`).join('');
-
-  document.getElementById('upload-area').style.display = 'none';
 }
 
-
-// Drag and drop
-const ua = document.getElementById('upload-area');
-if(ua){
-  ua.addEventListener('dragover', e=>{ e.preventDefault(); ua.classList.add('dragover'); });
-  ua.addEventListener('dragleave', ()=>ua.classList.remove('dragover'));
-  ua.addEventListener('drop', e=>{ e.preventDefault(); ua.classList.remove('dragover'); const f=e.dataTransfer.files[0]; if(f){ const inp=document.getElementById('fin-upload'); const dt=new DataTransfer(); dt.items.add(f); inp.files=dt.files; handleFinUpload({target:inp}); } });
+function editMonth(key){
+  const [year, month] = key.split('-');
+  document.getElementById('fin-year').value = year;
+  document.getElementById('fin-month').value = month;
+  showFinForm();
 }
+
+// Init financials
+renderFinDisplay();
+
 </script>
 </body>
 </html>
