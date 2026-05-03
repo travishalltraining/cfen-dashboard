@@ -252,7 +252,7 @@
 
 <script>
 // ── CONFIG ──────────────────────────────────────────────
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbycN5Z2kR-oL75_rvswUtDX6U712cD88F1ldwLTx1ewuz6rvttnGIKjD2z2xcc_vbZQ/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyBHuH_MTDoRs7S9RK0seBfLDzt19QrG9CkQUqWo1-DmGQJzK5EJ2S3EQV6_9DscwLx/exec';
 // ────────────────────────────────────────────────────────
 
 const pageTitles = {summary:'DAILY SUMMARY',members:'ALL MEMBERS',risk:'AT-RISK MEMBERS',expiring:'NEW & EXPIRING',signins:'CLASS USAGE',milestones:'MILESTONES'};
@@ -376,11 +376,11 @@ function renderData(data) {
 
   // Summary cards
   document.getElementById('s-paying').textContent   = summary.active_memberships || paying.length;
-  document.getElementById('s-free').textContent     = free.length;
+  document.getElementById('s-free').textContent = summary.free_members || free.length;
   document.getElementById('s-watchlist').textContent= summary.new_member_watchlist_count || newM.length;
   document.getElementById('s-bday').textContent     = summary.birthdays_today_count || bdays.length;
   document.getElementById('s-signins').textContent  = summary.total_class_sign_ins_yesterday || '0';
-  document.getElementById('s-elements').textContent = elements.length;
+  document.getElementById('s-elements').textContent = summary.elements_count || elements.length;
   document.getElementById('s-r714').textContent     = summary.risk_7_to_14_count || risk714.length;
   document.getElementById('s-r1529').textContent    = summary.risk_15_to_29_count || risk1529.length;
   document.getElementById('s-r30').textContent      = summary.risk_30_plus_count || risk30.length;
