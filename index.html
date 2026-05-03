@@ -82,18 +82,18 @@
   .badge-orange{background:var(--orange-dim);color:var(--orange);}
   .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
   .chart-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px;}
-  .chart-card.blue-accent{border-top:2px solid var(--blue);}
-  .chart-card.red-accent{border-top:2px solid var(--red);}
-  .chart-title{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1.5px;color:var(--white);margin-bottom:14px;}
-  .chart-sub{font-size:9px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;margin-top:-10px;}
-  .bar-chart{display:flex;flex-direction:column;gap:7px;}
+  .chart-card.red-accent{border-top:3px solid var(--red);}
+  .chart-card.blue-accent{border-top:3px solid var(--blue);}
+  .chart-title{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1.5px;color:var(--white);margin-bottom:4px;}
+  .chart-sub{font-size:9px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;}
+  .bar-chart{display:flex;flex-direction:column;gap:8px;}
   .bar-row{display:flex;align-items:center;gap:8px;}
-  .bar-label{font-size:10px;color:var(--text-mid);width:72px;flex-shrink:0;text-align:right;font-family:'DM Mono',monospace;}
-  .bar-track{flex:1;height:18px;background:var(--border);border-radius:3px;overflow:hidden;}
-  .bar-fill{height:100%;border-radius:3px;transition:width 1s ease;}
+  .bar-label{font-size:10px;color:var(--text-mid);width:76px;flex-shrink:0;text-align:right;font-family:'DM Mono',monospace;}
+  .bar-track{flex:1;height:20px;background:var(--border);border-radius:4px;overflow:hidden;position:relative;}
+  .bar-fill{height:100%;border-radius:4px;transition:width 1s ease;}
   .bar-fill.cf{background:var(--red);}
   .bar-fill.sgpt{background:var(--blue);}
-  .bar-val{font-size:10px;color:var(--text-dim);width:28px;font-family:'DM Mono',monospace;}
+  .bar-val{font-size:10px;color:var(--text-dim);width:32px;font-family:'DM Mono',monospace;text-align:right;}
   .milestone-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
   .search-bar{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;width:100%;margin-bottom:16px;outline:none;transition:border-color 0.2s;}
   .search-bar:focus{border-color:var(--red);}
@@ -231,16 +231,16 @@
     <!-- MILESTONES -->
     <div class="page" id="page-milestones">
       <div class="milestone-grid">
-        <div class="section-block"><div class="section-header"><span class="section-title">🥉 100 CLASSES</span></div>
+        <div class="section-block"><div class="section-header"><span class="section-title">🥉 APPROACHING 100</span><span class="section-count">90–110</span></div>
           <table><thead><tr><th>#</th><th>Member</th><th>Sign-Ins</th></tr></thead><tbody id="m100-list"></tbody></table></div>
-        <div class="section-block"><div class="section-header"><span class="section-title">🥈 250 CLASSES</span></div>
+        <div class="section-block"><div class="section-header"><span class="section-title">🥈 APPROACHING 250</span><span class="section-count">240–260</span></div>
           <table><thead><tr><th>#</th><th>Member</th><th>Sign-Ins</th></tr></thead><tbody id="m250-list"></tbody></table></div>
-        <div class="section-block"><div class="section-header"><span class="section-title">🥇 500 CLASSES</span></div>
+        <div class="section-block"><div class="section-header"><span class="section-title">🥇 APPROACHING 500</span><span class="section-count">490–510</span></div>
           <table><thead><tr><th>#</th><th>Member</th><th>Sign-Ins</th></tr></thead><tbody id="m500-list"></tbody></table></div>
-        <div class="section-block"><div class="section-header"><span class="section-title">🏆 750 CLASSES</span></div>
+        <div class="section-block"><div class="section-header"><span class="section-title">🏆 APPROACHING 750</span><span class="section-count">740–760</span></div>
           <table><thead><tr><th>#</th><th>Member</th><th>Sign-Ins</th></tr></thead><tbody id="m750-list"></tbody></table></div>
       </div>
-      <div class="section-block"><div class="section-header"><span class="section-title">💎 1000+ CLASSES</span></div>
+      <div class="section-block"><div class="section-header"><span class="section-title">💎 APPROACHING 1000</span><span class="section-count">990–1010</span></div>
         <table><thead><tr><th>#</th><th>Member</th><th>Sign-Ins</th></tr></thead><tbody id="m1000-list"></tbody></table></div>
     </div>
 
@@ -281,16 +281,39 @@ function setStatus(state){
   }
 }
 
-function makeBarChart(id, data, colorClass='cf'){
-  const el=document.getElementById(id);
-  if(!data||!data.length){el.innerHTML='<div class="empty">No data</div>';return;}
-  const max=Math.max(...data.map(d=>parseInt(d.count)||0));
-  el.innerHTML=data.map(d=>`
-    <div class="bar-row">
-      <div class="bar-label">${d.label}</div>
-      <div class="bar-track"><div class="bar-fill ${colorClass}" style="width:${max>0?Math.round((parseInt(d.count)||0)/max*100):0}%"></div></div>
-      <div class="bar-val">${d.count}</div>
-    </div>`).join('');
+function makeBarChart(id, rows, labelKey, colorClass){
+  const el = document.getElementById(id);
+  if(!rows || rows.length === 0){ el.innerHTML='<div class="empty">No data</div>'; return; }
+  const counts = rows.map(r => parseInt(r.count) || 0);
+  const max = Math.max(...counts);
+  el.innerHTML = rows.map(r => {
+    const cnt = parseInt(r.count) || 0;
+    const pct = max > 0 ? Math.round(cnt / max * 100) : 0;
+    return `<div class="bar-row">
+      <div class="bar-label">${r[labelKey] || '—'}</div>
+      <div class="bar-track"><div class="bar-fill ${colorClass}" style="width:${pct}%"></div></div>
+      <div class="bar-val">${cnt}</div>
+    </div>`;
+  }).join('');
+}
+
+function makeDayChart(id, rows, colorClass){
+  const el = document.getElementById(id);
+  if(!rows || rows.length === 0){ el.innerHTML='<div class="empty">No data</div>'; return; }
+  // Sort by day order
+  const sorted = dayOrder
+    .map(day => rows.find(r => r.class_day_of_week === day))
+    .filter(Boolean);
+  const max = Math.max(...sorted.map(r => parseInt(r.count)||0));
+  el.innerHTML = sorted.map(r => {
+    const cnt = parseInt(r.count)||0;
+    const pct = max > 0 ? Math.round(cnt/max*100) : 0;
+    return `<div class="bar-row">
+      <div class="bar-label">${r.class_day_of_week.slice(0,3)}</div>
+      <div class="bar-track"><div class="bar-fill ${colorClass}" style="width:${pct}%"></div></div>
+      <div class="bar-val">${cnt}</div>
+    </div>`;
+  }).join('');
 }
 
 function daysBadge(d){
@@ -317,7 +340,7 @@ function filterMembers(){
   renderMemberTable(allMembersData.filter(m=>(m.display_name||'').toLowerCase().includes(q)));
 }
 
-function renderRiskTable(id,cntId,data,badgeClass){
+function renderRiskTable(id, cntId, data, badgeClass){
   document.getElementById(cntId).textContent=data.length;
   document.getElementById(id).innerHTML=data.length
     ?data.map((m,i)=>{
@@ -333,33 +356,48 @@ function renderRiskTable(id,cntId,data,badgeClass){
     :'<tr><td colspan="5" class="empty">None — great job! 🎉</td></tr>';
 }
 
-function renderMS(id,data){
-  document.getElementById(id).innerHTML=data.length
-    ?data.map((m,i)=>`<tr><td class="row-num">${i+1}</td><td>${m.display_name||'—'}</td><td class="num-cell">${m.total_sign_ins}</td></tr>`).join('')
-    :'<tr><td colspan="3" class="empty">None yet</td></tr>';
+function renderMS(id, data, benchmark){
+  // Filter to within 10 of benchmark
+  const filtered = data.filter(m => {
+    const n = parseInt(m.total_sign_ins);
+    return n >= benchmark - 10 && n <= benchmark + 10;
+  }).sort((a,b) => parseInt(a.total_sign_ins) - parseInt(b.total_sign_ins));
+
+  document.getElementById(id).innerHTML = filtered.length
+    ? filtered.map((m,i) => {
+        const n = parseInt(m.total_sign_ins);
+        const diff = n - benchmark;
+        const diffStr = diff === 0 ? '🎯' : diff > 0 ? `+${diff}` : `${diff}`;
+        return `<tr>
+          <td class="row-num">${i+1}</td>
+          <td>${m.display_name||'—'}</td>
+          <td class="num-cell">${n} <span style="color:var(--text-dim);font-size:10px">${diffStr}</span></td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="3" class="empty">None in range</td></tr>';
 }
 
 function renderData(data){
-  const members  = data.members  || [];
+  const members  = data.members   || [];
   const newM     = data.newMembers || [];
-  const bdays    = data.birthdays || [];
-  const expiring = data.expiring  || [];
-  const summary  = Array.isArray(data.summary)?(data.summary[0]||{}):(data.summary||{});
+  const bdays    = data.birthdays  || [];
+  const expiring = data.expiring   || [];
+  const summary  = Array.isArray(data.summary) ? (data.summary[0]||{}) : (data.summary||{});
   const atRisk714  = data.atRisk714  || [];
   const atRisk1529 = data.atRisk1529 || [];
   const atRisk30   = data.atRisk30   || [];
-  const signInsYesterday = data.signInsYesterday ? (data.signInsYesterday[0]||{}) : {};
+  const yesterday  = Array.isArray(data.signInsYesterday) ? (data.signInsYesterday[0]||{}) : {};
 
-  // Summary cards
-  document.getElementById('s-paying').textContent   = summary.active_memberships            || '—';
-  document.getElementById('s-free').textContent     = summary.free_members                  || '—';
-  document.getElementById('s-watchlist').textContent= summary.new_member_watchlist_count    || newM.length;
-  document.getElementById('s-bday').textContent     = summary.birthdays_today_count         || bdays.length;
-  document.getElementById('s-signins').textContent  = signInsYesterday.total               || '0';
-  document.getElementById('s-elements').textContent = summary.elements_count               || '—';
-  document.getElementById('s-r714').textContent     = summary.risk_7_to_14_count           || atRisk714.length;
-  document.getElementById('s-r1529').textContent    = summary.risk_15_to_29_count          || atRisk1529.length;
-  document.getElementById('s-r30').textContent      = summary.risk_30_plus_count           || atRisk30.length;
+  // Summary
+  document.getElementById('s-paying').textContent   = summary.active_memberships         || '—';
+  document.getElementById('s-free').textContent     = summary.free_members               || '—';
+  document.getElementById('s-watchlist').textContent= summary.new_member_watchlist_count || newM.length;
+  document.getElementById('s-bday').textContent     = summary.birthdays_today_count      || bdays.length;
+  document.getElementById('s-signins').textContent  = yesterday.total                    || '0';
+  document.getElementById('s-elements').textContent = summary.elements_count             || '—';
+  document.getElementById('s-r714').textContent     = summary.risk_7_to_14_count         || atRisk714.length;
+  document.getElementById('s-r1529').textContent    = summary.risk_15_to_29_count        || atRisk1529.length;
+  document.getElementById('s-r30').textContent      = summary.risk_30_plus_count         || atRisk30.length;
 
   // Birthdays
   if(bdays.length){
@@ -372,19 +410,19 @@ function renderData(data){
   }
 
   // All members
-  allMembersData=members;
+  allMembersData = members;
   renderMemberTable(members);
 
-  // At-risk (pre-filtered server side)
-  renderRiskTable('risk714-list','r714-cnt',atRisk714,'badge-gold');
-  renderRiskTable('risk1529-list','r1529-cnt',atRisk1529,'badge-orange');
-  renderRiskTable('risk30-list','r30-cnt',atRisk30,'badge-red');
+  // At-risk (server-side filtered for CF + SGPT paying active only)
+  renderRiskTable('risk714-list',  'r714-cnt',  atRisk714,  'badge-gold');
+  renderRiskTable('risk1529-list', 'r1529-cnt', atRisk1529, 'badge-orange');
+  renderRiskTable('risk30-list',   'r30-cnt',   atRisk30,   'badge-red');
 
   // New members
-  document.getElementById('new-cnt').textContent=newM.length;
-  document.getElementById('new-members-list').innerHTML=newM.length
-    ?newM.map((m,i)=>{
-        const la=m.days_since_last_attendance;
+  document.getElementById('new-cnt').textContent = newM.length;
+  document.getElementById('new-members-list').innerHTML = newM.length
+    ? newM.map((m,i) => {
+        const la = m.days_since_last_attendance;
         return `<tr>
           <td class="row-num">${i+1}</td>
           <td>${m.display_name||'—'}</td>
@@ -393,55 +431,51 @@ function renderData(data){
           <td class="num-cell">${m.total_sign_ins||0}</td>
         </tr>`;
       }).join('')
-    :'<tr><td colspan="5" class="empty">No new members</td></tr>';
+    : '<tr><td colspan="5" class="empty">No new members</td></tr>';
 
   // Expiring
-  document.getElementById('exp-cnt').textContent=expiring.length;
-  document.getElementById('expiring-list').innerHTML=expiring.length
-    ?expiring.map((m,i)=>{
-        const d=parseInt(m.days_until_expiration)||0;
-        const cls=d<=9?'badge-red':d<=20?'badge-orange':'badge-gold';
+  document.getElementById('exp-cnt').textContent = expiring.length;
+  document.getElementById('expiring-list').innerHTML = expiring.length
+    ? expiring.map((m,i) => {
+        const d = parseInt(m.days_until_expiration)||0;
+        const cls = d<=9?'badge-red':d<=20?'badge-orange':'badge-gold';
         return `<tr><td class="row-num">${i+1}</td><td>${m.display_name||'—'}</td><td>${m.membership_name||'—'}</td><td><span class="badge ${cls}">${d}d</span></td></tr>`;
       }).join('')
-    :'<tr><td colspan="4" class="empty">No expiring memberships</td></tr>';
+    : '<tr><td colspan="4" class="empty">No expiring memberships</td></tr>';
 
-  // CF Charts
-  const cfByTime = data.cfByTime || [];
-  const cfByDay  = data.cfByDay  || [];
-  makeBarChart('cf-time-chart', cfByTime.map(d=>({label:d.class_time, count:d.count})), 'cf');
-  makeBarChart('cf-day-chart',  dayOrder.filter(day=>cfByDay.find(d=>d.class_day_of_week===day))
-    .map(day=>{const r=cfByDay.find(d=>d.class_day_of_week===day);return{label:day.slice(0,3),count:r.count};}), 'cf');
+  // Charts — CF
+  makeBarChart('cf-time-chart', data.cfByTime || [], 'class_time', 'cf');
+  makeDayChart('cf-day-chart',  data.cfByDay  || [], 'cf');
 
-  // SGPT Charts
-  const sgptByTime = data.sgptByTime || [];
-  const sgptByDay  = data.sgptByDay  || [];
-  makeBarChart('sgpt-time-chart', sgptByTime.map(d=>({label:d.class_time, count:d.count})), 'sgpt');
-  makeBarChart('sgpt-day-chart',  dayOrder.filter(day=>sgptByDay.find(d=>d.class_day_of_week===day))
-    .map(day=>{const r=sgptByDay.find(d=>d.class_day_of_week===day);return{label:day.slice(0,3),count:r.count};}), 'sgpt');
+  // Charts — SGPT
+  makeBarChart('sgpt-time-chart', data.sgptByTime || [], 'class_time', 'sgpt');
+  makeDayChart('sgpt-day-chart',  data.sgptByDay  || [], 'sgpt');
 
-  // Milestones
-  const ms=data.milestones||[];
-  renderMS('m100-list',  ms.filter(m=>parseInt(m.total_sign_ins)>=100 &&parseInt(m.total_sign_ins)<250));
-  renderMS('m250-list',  ms.filter(m=>parseInt(m.total_sign_ins)>=250 &&parseInt(m.total_sign_ins)<500));
-  renderMS('m500-list',  ms.filter(m=>parseInt(m.total_sign_ins)>=500 &&parseInt(m.total_sign_ins)<750));
-  renderMS('m750-list',  ms.filter(m=>parseInt(m.total_sign_ins)>=750 &&parseInt(m.total_sign_ins)<1000));
-  renderMS('m1000-list', ms.filter(m=>parseInt(m.total_sign_ins)>=1000));
+  // Milestones — within 10 of each benchmark
+  const ms = data.milestones || [];
+  renderMS('m100-list',  ms, 100);
+  renderMS('m250-list',  ms, 250);
+  renderMS('m500-list',  ms, 500);
+  renderMS('m750-list',  ms, 750);
+  renderMS('m1000-list', ms, 1000);
 }
 
 function loadLive(){
   setStatus('loading');
-  const old=document.getElementById('jsonp-script');
-  if(old)old.remove();
-  window.__cfenCallback=function(data){
-    if(data&&!data.error){renderData(data);setStatus('live');}
-    else{console.warn('Error:',data&&data.error);setStatus('demo');}
+  const old = document.getElementById('jsonp-script');
+  if(old) old.remove();
+  window.__cfenCallback = function(data){
+    if(data && !data.error){ renderData(data); setStatus('live'); }
+    else{ console.warn('Apps Script error:', data&&data.error); setStatus('demo'); }
   };
-  const script=document.createElement('script');
-  script.id='jsonp-script';
-  script.src=SCRIPT_URL+'?callback=__cfenCallback&t='+Date.now();
-  script.onerror=()=>setStatus('demo');
+  const script = document.createElement('script');
+  script.id = 'jsonp-script';
+  script.src = SCRIPT_URL + '?callback=__cfenCallback&t=' + Date.now();
+  script.onerror = () => setStatus('demo');
   document.head.appendChild(script);
-  setTimeout(()=>{if(document.getElementById('status-pill').textContent.includes('CONNECTING'))setStatus('demo');},15000);
+  setTimeout(() => {
+    if(document.getElementById('status-pill').textContent.includes('CONNECTING')) setStatus('demo');
+  }, 20000);
 }
 
 setDate();
