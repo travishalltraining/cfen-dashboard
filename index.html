@@ -313,7 +313,7 @@
 </main>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby5hUlbT986vsyCT0PROqR3DuLuvFUhPM95tIQwoVYWzl2yvzdV_tchL0Ju8TNnCOyP/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw3o83-lYKB1cFlHwq8BpXTKUFNAhoC9-A5xYjmYaYfJzzEXsruqdaX4X1p_0Li08U1/exec';
 const pageTitles = {summary:'DAILY SUMMARY',members:'ALL MEMBERS',risk:'AT-RISK MEMBERS',expiring:'NEW & EXPIRING',signins:'CLASS USAGE',milestones:'MILESTONES',financials:'FINANCIAL HEALTH'};
 const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 let allMembersData = [];
@@ -592,120 +592,171 @@ function loadSheetJS(cb){
 function parseXLSX(data){
   const XLSX = window.XLSX;
   const wb = XLSX.read(data, {type:'arraybuffer'});
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+  // Try P&L sheet first, fallback to first sheet
+  const sheetName = wb.SheetNames.find(n=>n.toLowerCase().includes('p&l')||n.toLowerCase().includes('profit')) || wb.SheetNames[0];
+  const ws = wb.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+  console.log('Parsing sheet:', sheetName, 'rows:', rows.length);
   renderFinancials(rows);
 }
 
 function renderFinancials(rows){
-  // Find header row with month columns
-  let headerRow = -1, months = [], totalCol = -1;
-  for(let i=0;i<rows.length;i++){
+  // Debug: log first 20 rows
+  console.log('First 20 rows:', JSON.stringify(rows.slice(0,20)));
+
+  // Find header row — look for row with month names
+  const monthNames = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  let headerRow = -1;
+  for(let i=0;i<Math.min(rows.length,15);i++){
     const r = rows[i];
-    const hasMonth = r.some(c => typeof c === 'string' && (c.includes('Jan')||c.includes('Feb')||c.includes('Mar')||c.includes('Apr')||c.includes('May')||c.includes('Jun')||c.includes('Jul')||c.includes('Aug')||c.includes('Sep')||c.includes('Oct')||c.includes('Nov')||c.includes('Dec')));
+    const hasMonth = r.some(c => {
+      const s = String(c||'').toLowerCase();
+      return monthNames.some(m => s.startsWith(m));
+    });
     if(hasMonth){ headerRow = i; break; }
   }
-  if(headerRow < 0){ alert('Could not find month columns. Please upload a QuickBooks P&L export.'); return; }
 
+  if(headerRow < 0){
+    console.error('No header row found');
+    alert('Could not find month columns. Make sure this is a QuickBooks P&L export (.xlsx).');
+    return;
+  }
+
+  console.log('Header row:', headerRow, rows[headerRow]);
+
+  // Map columns
   const header = rows[headerRow];
-  header.forEach((h,i)=>{ if(typeof h === 'string' && h.trim()) { if(h.toLowerCase().includes('total')) totalCol=i; else if(h.trim()) months.push({name:h.trim(),col:i}); } });
+  const months = [];
+  let totalCol = -1;
+  header.forEach((h,i)=>{
+    if(h===null || h===undefined || h==='') return;
+    const s = String(h).trim();
+    if(!s) return;
+    if(s.toLowerCase().includes('total')) { totalCol = i; }
+    else if(monthNames.some(m => s.toLowerCase().startsWith(m))) { months.push({name:s, col:i}); }
+  });
 
-  // Parse key line items
-  const find = (label) => {
-    for(let r of rows){
-      const cell = String(r[0]||'').toLowerCase().trim();
-      if(cell === label.toLowerCase().trim()){
-        const vals = {};
-        months.forEach(m=>vals[m.name]=parseFloat(r[m.col])||0);
-        vals['Total'] = parseFloat(r[totalCol])||0;
-        return vals;
+  console.log('Months found:', months, 'Total col:', totalCol);
+
+  // Find value in any column — handles indented QuickBooks labels
+  const find = (...labels) => {
+    for(const label of labels){
+      for(let r of rows){
+        // Check all columns for the label (QuickBooks indents with empty col A)
+        for(let ci=0;ci<Math.min(r.length,3);ci++){
+          const cell = String(r[ci]||'').toLowerCase().trim();
+          if(cell === label.toLowerCase().trim()){
+            const vals = {};
+            months.forEach(m=>{ vals[m.name] = typeof r[m.col]==='number' ? r[m.col] : (parseFloat(r[m.col])||0); });
+            vals['Total'] = totalCol>=0 ? (typeof r[totalCol]==='number' ? r[totalCol] : (parseFloat(r[totalCol])||0)) : Object.values(vals).reduce((a,b)=>a+b,0);
+            console.log('Found:', label, vals);
+            return vals;
+          }
+        }
       }
     }
+    console.warn('Not found:', labels);
     return null;
   };
 
-  const revenue = find('Total for Income') || find('Total Income') || find('Gross Profit');
-  const expenses = find('Total for Expenses') || find('Total Expenses');
-  const netIncome = find('Net Income');
-  const payroll = find('Total for Payroll expenses') || find('Total Payroll');
-  const rent = find('Total for Rent') || find('Rent');
-  const adv = find('Total for Advertising & marketing') || find('Advertising & marketing');
-  const membership = find('Membership');
-  const sgpt = find('Semi Private Training');
-  const dropIn = find('Drop In Sales');
+  const revenue  = find('Total for Income','Total Income','Gross Profit','Total Income/Revenue');
+  const expenses = find('Total for Expenses','Total Expenses','Total Expense');
+  const netIncome= find('Net Income','Net Profit');
+  const payroll  = find('Total for Payroll expenses','Total Payroll','Payroll expenses');
+  const rent     = find('Total for Rent','Rent');
+  const adv      = find('Total for Advertising & marketing','Total Advertising','Advertising & marketing');
+  const membership=find('Membership');
+  const sgpt     = find('Semi Private Training');
+  const dropIn   = find('Drop In Sales');
   const elements = find('Elements Training');
-  const vending = find('Vending Sales');
-  const netOp = find('Net Operating Income');
+  const vending  = find('Vending Sales');
+  const mobile   = find('Mobile Private Training');
+  const apparel  = find('Apparel Sales');
 
-  if(!revenue){ alert('Could not parse P&L data. Make sure this is a QuickBooks export.'); return; }
+  if(!revenue){
+    alert('Could not parse P&L. Check console for debug info.');
+    return;
+  }
 
   const totalRev = revenue.Total || 0;
-  const totalExp = expenses ? expenses.Total : 0;
-  const totalNet = netIncome ? netIncome.Total : (totalRev - totalExp);
-  const margin = totalRev > 0 ? (totalNet/totalRev*100) : 0;
-  const period = months.map(m=>m.name).join(' – ');
+  const totalExp = expenses ? Math.abs(expenses.Total||0) : 0;
+  const totalNet = netIncome ? (netIncome.Total||0) : (totalRev - totalExp);
+  const margin   = totalRev > 0 ? (totalNet/totalRev*100) : 0;
+  const period   = months.map(m=>m.name).join(' – ');
+  const isQtd    = months.length > 1;
 
-  // Show summary cards
+  // Summary cards
   document.getElementById('fin-summary').style.display = 'grid';
-  document.getElementById('fin-revenue').textContent = fmt$(totalRev);
+  document.getElementById('fin-revenue').textContent  = fmt$(totalRev);
   document.getElementById('fin-expenses').textContent = fmt$(totalExp);
-  document.getElementById('fin-net').textContent = fmt$(totalNet);
-  document.getElementById('fin-net').style.color = totalNet >= 0 ? 'var(--green)' : 'var(--red)';
-  document.getElementById('fin-margin').textContent = fmtPct(margin);
-  document.getElementById('fin-margin').style.color = margin >= 0 ? 'var(--green)' : 'var(--red)';
-  document.getElementById('fin-period').textContent = period;
+  document.getElementById('fin-net').textContent      = fmt$(totalNet);
+  document.getElementById('fin-net').style.color      = totalNet>=0?'var(--green)':'var(--red)';
+  document.getElementById('fin-margin').textContent   = fmtPct(margin);
+  document.getElementById('fin-margin').style.color   = margin>=0?'var(--green)':'var(--red)';
+  document.getElementById('fin-revenue-sub').textContent = isQtd ? 'YTD total' : 'Monthly total';
+  document.getElementById('fin-period').textContent   = period;
 
-  // Monthly breakdown
+  // Monthly columns + YTD total column
+  const allCols = [...months];
+  if(isQtd && totalCol>=0) allCols.push({name:'YTD Total', col:totalCol, isTotal:true});
+
+  // Monthly breakdown cards
   document.getElementById('fin-months').style.display = 'grid';
-  document.getElementById('fin-months').innerHTML = months.map(m => {
-    const rev = revenue[m.name] || 0;
-    const exp = expenses ? (expenses[m.name]||0) : 0;
-    const net = netIncome ? (netIncome[m.name]||0) : (rev-exp);
-    const mgn = rev > 0 ? (net/rev*100) : 0;
-    return `<div class="fin-month">
-      <div class="fin-month-title">${m.name}</div>
+  document.getElementById('fin-months').style.gridTemplateColumns = allCols.length<=3 ? 'repeat(3,1fr)' : allCols.length===4 ? 'repeat(4,1fr)' : 'repeat(3,1fr)';
+  document.getElementById('fin-months').innerHTML = allCols.map(m => {
+    const getV = (obj) => obj ? (typeof obj[m.name]==='number' ? obj[m.name] : (parseFloat(obj[m.name])||0)) : 0;
+    const rev = getV(revenue);
+    const exp = expenses ? Math.abs(getV(expenses)) : 0;
+    const net = netIncome ? getV(netIncome) : (rev-exp);
+    const mgn = rev>0 ? (net/rev*100) : 0;
+    const isT = m.isTotal;
+    return `<div class="fin-month" style="${isT?'border:1px solid var(--gold);':''}">
+      <div class="fin-month-title" style="${isT?'color:var(--gold)':''}">
+        ${isT?'📊 ':''} ${m.name}
+      </div>
       <div class="fin-row"><span class="fin-row-label">Revenue</span><span class="fin-row-val pos">${fmt$(rev)}</span></div>
       <div class="fin-row"><span class="fin-row-label">Expenses</span><span class="fin-row-val neg">${fmt$(exp)}</span></div>
-      ${payroll ? `<div class="fin-row"><span class="fin-row-label">Payroll</span><span class="fin-row-val">${fmt$(payroll[m.name]||0)}</span></div>` : ''}
-      ${rent ? `<div class="fin-row"><span class="fin-row-label">Rent</span><span class="fin-row-val">${fmt$(rent[m.name]||0)}</span></div>` : ''}
+      ${payroll?`<div class="fin-row"><span class="fin-row-label">Payroll</span><span class="fin-row-val">${fmt$(Math.abs(getV(payroll)))}</span></div>`:''}
+      ${rent?`<div class="fin-row"><span class="fin-row-label">Rent</span><span class="fin-row-val">${fmt$(Math.abs(getV(rent)))}</span></div>`:''}
       <div class="fin-row total-row"><span class="fin-row-label">Net Income</span><span class="fin-row-val ${net>=0?'pos':'neg'}">${fmt$(net)}</span></div>
       <div class="fin-row"><span class="fin-row-label">Margin</span><span class="fin-row-val ${mgn>=0?'pos':'neg'}">${fmtPct(mgn)}</span></div>
     </div>`;
   }).join('');
 
-  // Revenue bars
+  // Revenue breakdown bars
   document.getElementById('fin-revenue-block').style.display = 'block';
-  const revenueItems = [
-    {label:'Membership', val: membership?membership.Total:0},
-    {label:'Semi Private PT', val: sgpt?sgpt.Total:0},
-    {label:'Elements Training', val: elements?elements.Total:0},
-    {label:'Drop In Sales', val: dropIn?dropIn.Total:0},
-    {label:'Vending Sales', val: vending?vending.Total:0},
+  const revItems = [
+    {label:'Membership',      val: membership?Math.abs(membership.Total||0):0},
+    {label:'Semi Private PT', val: sgpt?Math.abs(sgpt.Total||0):0},
+    {label:'Elements',        val: elements?Math.abs(elements.Total||0):0},
+    {label:'Mobile PT',       val: mobile?Math.abs(mobile.Total||0):0},
+    {label:'Drop Ins',        val: dropIn?Math.abs(dropIn.Total||0):0},
+    {label:'Vending',         val: vending?Math.abs(vending.Total||0):0},
+    {label:'Apparel',         val: apparel?Math.abs(apparel.Total||0):0},
   ].filter(x=>x.val>0).sort((a,b)=>b.val-a.val);
-  const maxRev = Math.max(...revenueItems.map(x=>x.val));
-  document.getElementById('fin-revenue-bars').innerHTML = revenueItems.map(r=>`
+  const maxR = Math.max(...revItems.map(x=>x.val),1);
+  document.getElementById('fin-revenue-bars').innerHTML = revItems.map(r=>`
     <div class="rev-row">
       <div class="rev-label">${r.label}</div>
-      <div class="rev-track"><div class="rev-fill income" style="width:${maxRev>0?Math.round(r.val/maxRev*100):0}%"></div></div>
+      <div class="rev-track"><div class="rev-fill income" style="width:${Math.round(r.val/maxR*100)}%"></div></div>
       <div class="rev-val">${fmt$(r.val)}</div>
     </div>`).join('');
 
-  // Expense bars
+  // Expense breakdown bars
   document.getElementById('fin-expense-block').style.display = 'block';
   const expItems = [
-    {label:'Payroll', val: payroll?payroll.Total:0},
-    {label:'Rent', val: rent?rent.Total:0},
-    {label:'Advertising', val: adv?adv.Total:0},
+    {label:'Payroll',      val: payroll?Math.abs(payroll.Total||0):0},
+    {label:'Rent',         val: rent?Math.abs(rent.Total||0):0},
+    {label:'Advertising',  val: adv?Math.abs(adv.Total||0):0},
   ].filter(x=>x.val>0).sort((a,b)=>b.val-a.val);
-  const maxExp = Math.max(...expItems.map(x=>x.val));
+  const maxE = Math.max(...expItems.map(x=>x.val),1);
   document.getElementById('fin-expense-bars').innerHTML = expItems.map(r=>`
     <div class="rev-row">
       <div class="rev-label">${r.label}</div>
-      <div class="rev-track"><div class="rev-fill expense" style="width:${maxExp>0?Math.round(r.val/maxExp*100):0}%"></div></div>
+      <div class="rev-track"><div class="rev-fill expense" style="width:${Math.round(r.val/maxE*100)}%"></div></div>
       <div class="rev-val">${fmt$(r.val)}</div>
     </div>`).join('');
 
-  // Hide upload area
   document.getElementById('upload-area').style.display = 'none';
 }
 
