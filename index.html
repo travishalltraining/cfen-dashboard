@@ -322,6 +322,25 @@
         <div style="padding:16px 18px"><div class="revenue-bar" id="fin-expense-bars"></div></div>
       </div>
 
+      <!-- Line Chart -->
+      <div class="section-block" id="fin-chart-block" style="display:none;margin-bottom:16px;">
+        <div class="section-header"><span class="section-title">📈 MONTH OVER MONTH TREND</span></div>
+        <div style="padding:20px 18px;">
+          <canvas id="fin-chart" height="120"></canvas>
+          <div style="display:flex;gap:20px;justify-content:center;margin-top:12px;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);font-family:'DM Mono',monospace;">
+              <div style="width:16px;height:3px;background:var(--green);border-radius:2px;"></div> Revenue
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);font-family:'DM Mono',monospace;">
+              <div style="width:16px;height:3px;background:var(--red);border-radius:2px;"></div> Expenses
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);font-family:'DM Mono',monospace;">
+              <div style="width:16px;height:3px;background:var(--gold);border-radius:2px;border-style:dashed;"></div> Net Income
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Re-upload button -->
       <div id="fin-reupload" style="display:none;margin-top:12px;">
         <button onclick="document.getElementById('upload-area').style.display='block';document.getElementById('fin-summary').style.display='none';document.getElementById('fin-months').style.display='none';document.getElementById('fin-revenue-block').style.display='none';document.getElementById('fin-expense-block').style.display='none';this.parentElement.style.display='none';" style="background:var(--card);border:1px solid var(--border);color:var(--text-mid);padding:7px 14px;border-radius:6px;font-size:12px;cursor:pointer;">↑ Upload Different File</button>
@@ -361,7 +380,7 @@ function setStatus(state){
     time.textContent='Fetching data…';
   } else {
     dot.className='dot demo';pill.className='status-pill demo';pill.textContent='● DEMO';
-    time.textContent='Demo data';
+    time.textContent='Demo data — member data only';
   }
 }
 
@@ -582,6 +601,96 @@ function loadLive(){
   }, 20000);
 }
 
+function drawLineChart(months, revenue, expenses, netIncome){
+  const canvas = document.getElementById('fin-chart');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.parentElement.offsetWidth - 40;
+
+  const labels = months.map(m => m.name);
+  const revVals = months.map(m => revenue ? (revenue[m.name] || 0) : 0);
+  const expVals = months.map(m => expenses ? Math.abs(expenses[m.name] || 0) : 0);
+  const netVals = months.map(m => netIncome ? (netIncome[m.name] || 0) : 0);
+
+  const allVals = [...revVals, ...expVals, ...netVals];
+  const minVal = Math.min(...allVals);
+  const maxVal = Math.max(...allVals);
+  const range = maxVal - minVal || 1;
+
+  const pad = { top: 20, right: 20, bottom: 40, left: 70 };
+  const w = canvas.width - pad.left - pad.right;
+  const h = canvas.height - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Grid lines
+  const gridLines = 4;
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  for(let i = 0; i <= gridLines; i++){
+    const y = pad.top + (h / gridLines) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + w, y); ctx.stroke();
+    const val = maxVal - (range / gridLines) * i;
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = '10px DM Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('$' + Math.round(val/1000) + 'k', pad.left - 6, y + 4);
+  }
+
+  // Draw line helper
+  const drawLine = (vals, color, dashed=false) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash(dashed ? [6, 3] : []);
+    ctx.beginPath();
+    vals.forEach((v, i) => {
+      const x = pad.left + (w / (vals.length - 1)) * i;
+      const y = pad.top + h - ((v - minVal) / range) * h;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Dots
+    ctx.fillStyle = color;
+    vals.forEach((v, i) => {
+      const x = pad.left + (w / (vals.length - 1)) * i;
+      const y = pad.top + h - ((v - minVal) / range) * h;
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+      // Value label
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.font = '9px DM Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('$' + Math.round(v/1000) + 'k', x, y - 8);
+      ctx.fillStyle = color;
+    });
+  };
+
+  drawLine(revVals, '#27ae60');
+  drawLine(expVals, '#e63329');
+  drawLine(netVals, '#c9a84c', true);
+
+  // X axis labels
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '10px DM Mono, monospace';
+  ctx.textAlign = 'center';
+  labels.forEach((l, i) => {
+    const x = pad.left + (w / (labels.length - 1)) * i;
+    ctx.fillText(l, x, pad.top + h + 20);
+  });
+}
+
+// Load persisted P&L data on page load
+try {
+  const saved = localStorage.getItem('cfen_pnl_data');
+  if(saved){
+    const parsed = JSON.parse(saved);
+    if(parsed && parsed.rows && parsed.rows.length){
+      // Restore after a short delay to let DOM render
+      setTimeout(() => renderFinancials(parsed.rows), 500);
+    }
+  }
+} catch(e){ console.warn('Could not restore P&L data:', e); }
+
 setDate();
 loadLive();
 
@@ -749,7 +858,9 @@ function renderFinancials(rows){
   document.getElementById('fin-months').innerHTML = allCols.map(m => {
     const gm = (obj) => {
       if(!obj) return 0;
-      const v = obj[m.name];
+      // For YTD column, use 'Total' key; for month columns use month name
+      const key = m.isTotal ? 'Total' : m.name;
+      const v = obj[key];
       return (typeof v === 'number') ? v : (parseFloat(v) || 0);
     };
     const rev = gm(revenue);
@@ -809,9 +920,111 @@ function renderFinancials(rows){
       <div class="rev-val">${fmt$(r.val)}</div>
     </div>`).join('');
 
+  // Line chart
+  if(months.length > 1){
+    document.getElementById('fin-chart-block').style.display = 'block';
+    drawLineChart(months, revenue, expenses, netIncome);
+  }
+
   document.getElementById('upload-area').style.display = 'none';
   document.getElementById('fin-reupload').style.display = 'block';
+
+  // Persist parsed data to localStorage
+  try {
+    const saveData = { rows: rows, timestamp: Date.now() };
+    localStorage.setItem('cfen_pnl_data', JSON.stringify(saveData));
+  } catch(e) { console.warn('Could not save to localStorage:', e); }
 }
+
+function drawLineChart(months, revenue, expenses, netIncome){
+  const canvas = document.getElementById('fin-chart');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.parentElement.offsetWidth - 40;
+
+  const labels = months.map(m => m.name);
+  const revVals = months.map(m => revenue ? (revenue[m.name] || 0) : 0);
+  const expVals = months.map(m => expenses ? Math.abs(expenses[m.name] || 0) : 0);
+  const netVals = months.map(m => netIncome ? (netIncome[m.name] || 0) : 0);
+
+  const allVals = [...revVals, ...expVals, ...netVals];
+  const minVal = Math.min(...allVals);
+  const maxVal = Math.max(...allVals);
+  const range = maxVal - minVal || 1;
+
+  const pad = { top: 20, right: 20, bottom: 40, left: 70 };
+  const w = canvas.width - pad.left - pad.right;
+  const h = canvas.height - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Grid lines
+  const gridLines = 4;
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  for(let i = 0; i <= gridLines; i++){
+    const y = pad.top + (h / gridLines) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + w, y); ctx.stroke();
+    const val = maxVal - (range / gridLines) * i;
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = '10px DM Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('$' + Math.round(val/1000) + 'k', pad.left - 6, y + 4);
+  }
+
+  // Draw line helper
+  const drawLine = (vals, color, dashed=false) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash(dashed ? [6, 3] : []);
+    ctx.beginPath();
+    vals.forEach((v, i) => {
+      const x = pad.left + (w / (vals.length - 1)) * i;
+      const y = pad.top + h - ((v - minVal) / range) * h;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Dots
+    ctx.fillStyle = color;
+    vals.forEach((v, i) => {
+      const x = pad.left + (w / (vals.length - 1)) * i;
+      const y = pad.top + h - ((v - minVal) / range) * h;
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+      // Value label
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.font = '9px DM Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('$' + Math.round(v/1000) + 'k', x, y - 8);
+      ctx.fillStyle = color;
+    });
+  };
+
+  drawLine(revVals, '#27ae60');
+  drawLine(expVals, '#e63329');
+  drawLine(netVals, '#c9a84c', true);
+
+  // X axis labels
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '10px DM Mono, monospace';
+  ctx.textAlign = 'center';
+  labels.forEach((l, i) => {
+    const x = pad.left + (w / (labels.length - 1)) * i;
+    ctx.fillText(l, x, pad.top + h + 20);
+  });
+}
+
+// Load persisted P&L data on page load
+try {
+  const saved = localStorage.getItem('cfen_pnl_data');
+  if(saved){
+    const parsed = JSON.parse(saved);
+    if(parsed && parsed.rows && parsed.rows.length){
+      // Restore after a short delay to let DOM render
+      setTimeout(() => renderFinancials(parsed.rows), 500);
+    }
+  }
+} catch(e){ console.warn('Could not restore P&L data:', e); }
 
 setDate();
 loadLive();
@@ -820,40 +1033,100 @@ loadLive();
 let finData = JSON.parse(localStorage.getItem('cfen_financials') || '{}');
 
 function loadFinFromBQ(bqRows){
-  // Merge BigQuery data into finData (BQ wins over localStorage)
   if(!bqRows || !bqRows.length) return;
-  bqRows.forEach(r=>{
-    const key = r.report_year + '-' + r.report_month;
-    finData[key] = {
-      month: r.report_month,
-      year: r.report_year,
-      membership: parseFloat(r.membership)||0,
-      'semi-private-training': parseFloat(r.semi_private_training)||0,
-      'elements-training': parseFloat(r.elements_training)||0,
-      'mobile-private-training': parseFloat(r.mobile_private_training)||0,
-      'drop-in-sales': parseFloat(r.drop_in_sales)||0,
-      'vending-sales': parseFloat(r.vending_sales)||0,
-      'apparel-sales': parseFloat(r.apparel_sales)||0,
-      'personal-training': parseFloat(r.personal_training)||0,
-      'other-income': parseFloat(r.other_income)||0,
-      payroll: parseFloat(r.payroll)||0,
-      rent: parseFloat(r.rent)||0,
-      'advertising---marketing': parseFloat(r.advertising_marketing)||0,
-      'coaching-pay': parseFloat(r.coaching_pay)||0,
-      'admin-pay': parseFloat(r.admin_pay)||0,
-      'gym-equipment': parseFloat(r.gym_equipment)||0,
-      insurance: parseFloat(r.insurance)||0,
-      utilities: parseFloat(r.utilities)||0,
-      supplies: parseFloat(r.supplies)||0,
-      'software---apps': parseFloat(r.software_apps)||0,
-      'other-expenses': parseFloat(r.other_expenses)||0,
-      total_revenue: parseFloat(r.total_revenue)||0,
-      total_expenses: parseFloat(r.total_expenses)||0,
-      net_income: parseFloat(r.net_income)||0,
-    };
+
+  // Build rows array format for renderFinancials
+  // We have structured data so build synthetic rows
+  const rows = [];
+
+  // Build header row
+  const months = [];
+  bqRows.forEach(r => {
+    const label = r.report_month.slice(0,3) + ' ' + r.report_year;
+    if(!months.find(m => m.label === label)){
+      months.push({label, col: months.length + 1, data: r});
+    }
   });
-  localStorage.setItem('cfen_financials', JSON.stringify(finData));
-  renderFinDisplay();
+
+  // Header row: ['', 'Jan 2026', 'Feb 2026', ...]
+  const headerRow = [''];
+  months.forEach(m => headerRow.push(m.label));
+  headerRow.push('Total');
+  rows.push(headerRow);
+
+  // Helper to build a data row
+  const makeRow = (label, field) => {
+    const row = [label];
+    let total = 0;
+    months.forEach(m => {
+      const v = parseFloat(m.data[field]) || 0;
+      row.push(v);
+      total += v;
+    });
+    row.push(total);
+    return row;
+  };
+
+  // Revenue rows
+  rows.push(['Income']);
+  rows.push(makeRow('Membership', 'membership'));
+  rows.push(makeRow('Semi Private Training', 'semi_private_training'));
+  rows.push(makeRow('Elements Training', 'elements_training'));
+  rows.push(makeRow('Mobile Private Training', 'mobile_private_training'));
+  rows.push(makeRow('Drop In Sales', 'drop_in_sales'));
+  rows.push(makeRow('Vending Sales', 'vending_sales'));
+  rows.push(makeRow('Apparel Sales', 'apparel_sales'));
+  rows.push(makeRow('Personal Training', 'personal_training'));
+
+  // Total revenue row
+  const totalRevRow = ['Total for Income'];
+  let ytdRev = 0;
+  months.forEach(m => {
+    const v = parseFloat(m.data.total_revenue) || 0;
+    totalRevRow.push(v); ytdRev += v;
+  });
+  totalRevRow.push(ytdRev);
+  rows.push(totalRevRow);
+  rows.push(['Gross Profit', ...totalRevRow.slice(1)]);
+
+  // Expenses
+  rows.push(['Expenses']);
+  rows.push(makeRow('Total for Advertising & marketing', 'advertising_marketing'));
+  rows.push(makeRow('Coaching Pay', 'coaching_pay'));
+  rows.push(makeRow('Administrative Pay', 'admin_pay'));
+  rows.push(makeRow('Total for Payroll expenses', 'payroll'));
+  rows.push(makeRow('Total for Rent', 'rent'));
+  rows.push(makeRow('Insurance', 'insurance'));
+  rows.push(makeRow('Total for Utilities', 'utilities'));
+  rows.push(makeRow('Total for Supplies', 'supplies'));
+  rows.push(makeRow('Gym Equipment', 'gym_equipment'));
+
+  const totalExpRow = ['Total for Expenses'];
+  let ytdExp = 0;
+  months.forEach(m => {
+    const v = parseFloat(m.data.total_expenses) || 0;
+    totalExpRow.push(v); ytdExp += v;
+  });
+  totalExpRow.push(ytdExp);
+  rows.push(totalExpRow);
+
+  // Net income
+  const netRow = ['Net Income'];
+  let ytdNet = 0;
+  months.forEach(m => {
+    const v = parseFloat(m.data.net_income) || 0;
+    netRow.push(v); ytdNet += v;
+  });
+  netRow.push(ytdNet);
+  rows.push(netRow);
+
+  // Hide upload area and render
+  const ua = document.getElementById('upload-area');
+  if(ua) ua.style.display = 'none';
+  const ru = document.getElementById('fin-reupload');
+  if(ru) ru.style.display = 'block';
+
+  renderFinancials(rows);
 }
 
 const REV_FIELDS = ['membership','semi-private-training','elements-training','mobile-private-training','drop-in-sales','vending-sales','apparel-sales','personal-training','other-income'];
