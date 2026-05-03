@@ -288,7 +288,6 @@
     <!-- FINANCIALS PAGE -->
     <div class="page" id="page-financials">
 
-      <!-- Month/Year selector + Add button -->
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
         <select id="fin-month" style="background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
           <option>January</option><option>February</option><option>March</option>
@@ -304,34 +303,111 @@
 
       <!-- Entry Form -->
       <div class="section-block" id="fin-form" style="display:none;margin-bottom:18px;">
-        <div class="section-header"><span class="section-title">📝 ENTER MONTHLY DATA</span><span id="fin-form-title" style="color:var(--text-dim);font-size:12px;"></span></div>
-        <div style="padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+        <div class="section-header">
+          <span class="section-title">📝 ENTER MONTHLY DATA</span>
+          <span id="fin-form-title" style="color:var(--text-dim);font-size:12px;font-family:'DM Mono',monospace;"></span>
+        </div>
+        <div style="padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+
+          <!-- REVENUE COLUMN -->
           <div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1.5px;color:var(--green);margin-bottom:12px;">REVENUE</div>
-            ${['Membership','Semi Private Training','Elements Training','Mobile Private Training','Drop In Sales','Vending Sales','Apparel Sales','Personal Training','Other Income'].map(f=>`
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1.5px;color:var(--green);margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:8px;">REVENUE</div>
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-              <label style="font-size:12px;color:var(--text-mid);width:180px;flex-shrink:0;">${f}</label>
-              <input type="number" id="fin-${f.replace(/\s+/g,'-').toLowerCase()}" placeholder="0" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:120px;outline:none;" oninput="calcFinTotals()">
-            </div>`).join('')}
-            <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid var(--border);">
-              <label style="font-size:12px;color:var(--green);font-weight:600;width:180px;">Total Revenue</label>
-              <div id="fin-total-rev" style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);">$0</div>
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Membership</label>
+              <input type="number" id="fin-membership" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Semi Private Training</label>
+              <input type="number" id="fin-semi-private-training" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Elements Training</label>
+              <input type="number" id="fin-elements-training" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Mobile Private Training</label>
+              <input type="number" id="fin-mobile-private-training" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Drop In Sales</label>
+              <input type="number" id="fin-drop-in-sales" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Vending Sales</label>
+              <input type="number" id="fin-vending-sales" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Apparel Sales</label>
+              <input type="number" id="fin-apparel-sales" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Personal Training</label>
+              <input type="number" id="fin-personal-training" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Other Income</label>
+              <input type="number" id="fin-other-income" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+              <label style="font-size:13px;color:var(--green);font-weight:600;width:190px;">Total Revenue</label>
+              <div id="fin-total-rev" style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--green);">$0</div>
             </div>
           </div>
+
+          <!-- EXPENSES COLUMN -->
           <div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1.5px;color:var(--red);margin-bottom:12px;">EXPENSES</div>
-            ${['Payroll','Rent','Advertising & Marketing','Coaching Pay','Admin Pay','Gym Equipment','Insurance','Utilities','Supplies','Software & Apps','Other Expenses'].map(f=>`
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1.5px;color:var(--red);margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:8px;">EXPENSES</div>
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-              <label style="font-size:12px;color:var(--text-mid);width:180px;flex-shrink:0;">${f}</label>
-              <input type="number" id="fin-${f.replace(/[\s&]+/g,'-').replace(/-+/g,'-').toLowerCase()}" placeholder="0" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:120px;outline:none;" oninput="calcFinTotals()">
-            </div>`).join('')}
-            <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid var(--border);">
-              <label style="font-size:12px;color:var(--red);font-weight:600;width:180px;">Total Expenses</label>
-              <div id="fin-total-exp" style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--red);">$0</div>
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Payroll</label>
+              <input type="number" id="fin-payroll" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
             </div>
-            <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid var(--border);">
-              <label style="font-size:12px;color:var(--white);font-weight:600;width:180px;">Net Income</label>
-              <div id="fin-total-net" style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);">$0</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Rent</label>
+              <input type="number" id="fin-rent" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Advertising & Marketing</label>
+              <input type="number" id="fin-advertising-marketing" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Coaching Pay</label>
+              <input type="number" id="fin-coaching-pay" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Admin Pay</label>
+              <input type="number" id="fin-admin-pay" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Gym Equipment</label>
+              <input type="number" id="fin-gym-equipment" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Insurance</label>
+              <input type="number" id="fin-insurance" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Utilities</label>
+              <input type="number" id="fin-utilities" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Supplies</label>
+              <input type="number" id="fin-supplies" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Software & Apps</label>
+              <input type="number" id="fin-software-apps" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <label style="font-size:12px;color:var(--text-mid);width:190px;flex-shrink:0;">Other Expenses</label>
+              <input type="number" id="fin-other-expenses" placeholder="0" oninput="calcFinTotals()" style="background:var(--border);border:1px solid var(--muted);color:var(--text);padding:6px 10px;border-radius:5px;font-size:13px;font-family:'DM Mono',monospace;width:130px;outline:none;">
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+              <label style="font-size:13px;color:var(--red);font-weight:600;width:190px;">Total Expenses</label>
+              <div id="fin-total-exp" style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--red);">$0</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+              <label style="font-size:13px;color:var(--white);font-weight:600;width:190px;">Net Income</label>
+              <div id="fin-total-net" style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--green);">$0</div>
             </div>
           </div>
         </div>
@@ -341,20 +417,20 @@
         </div>
       </div>
 
-      <!-- Saved months display -->
+      <!-- Saved data display -->
       <div id="fin-display" style="display:none;">
-        <div class="fin-grid" id="fin-summary">
+        <div class="fin-grid">
           <div class="fin-card positive"><div class="fin-label">YTD Revenue</div><div class="fin-value" id="fin-ytd-rev">—</div><div class="fin-sub" id="fin-ytd-period">—</div></div>
           <div class="fin-card negative"><div class="fin-label">YTD Expenses</div><div class="fin-value" id="fin-ytd-exp">—</div><div class="fin-sub">Year to date</div></div>
           <div class="fin-card neutral"><div class="fin-label">YTD Net Income</div><div class="fin-value" id="fin-ytd-net">—</div><div class="fin-sub">Year to date</div></div>
           <div class="fin-card accent"><div class="fin-label">Avg Profit Margin</div><div class="fin-value" id="fin-ytd-margin">—</div><div class="fin-sub">YTD average</div></div>
         </div>
         <div class="fin-months" id="fin-months"></div>
-        <div class="section-block" id="fin-revenue-block">
+        <div class="section-block">
           <div class="section-header"><span class="section-title">💵 YTD REVENUE BREAKDOWN</span></div>
           <div style="padding:16px 18px"><div class="revenue-bar" id="fin-revenue-bars"></div></div>
         </div>
-        <div class="section-block" id="fin-expense-block">
+        <div class="section-block">
           <div class="section-header"><span class="section-title">💸 YTD EXPENSE BREAKDOWN</span></div>
           <div style="padding:16px 18px"><div class="revenue-bar" id="fin-expense-bars"></div></div>
         </div>
@@ -363,7 +439,7 @@
       <div id="fin-empty" style="text-align:center;padding:60px;color:var(--text-dim);">
         <div style="font-size:40px;margin-bottom:12px;">💰</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--text-mid);margin-bottom:6px;">No Financial Data Yet</div>
-        <div style="font-size:13px;">Select a month and click "Add / Edit Month" to get started</div>
+        <div style="font-size:13px;">Select a month and year, then click "+ Add / Edit Month"</div>
       </div>
 
     </div>
@@ -665,7 +741,7 @@ function loadFinFromBQ(bqRows){
 }
 
 const REV_FIELDS = ['membership','semi-private-training','elements-training','mobile-private-training','drop-in-sales','vending-sales','apparel-sales','personal-training','other-income'];
-const EXP_FIELDS = ['payroll','rent','advertising---marketing','coaching-pay','admin-pay','gym-equipment','insurance','utilities','supplies','software---apps','other-expenses'];
+const EXP_FIELDS = ['payroll','rent','advertising-marketing','coaching-pay','admin-pay','gym-equipment','insurance','utilities','supplies','software-apps','other-expenses'];
 const REV_LABELS = ['Membership','Semi Private Training','Elements Training','Mobile Private Training','Drop In Sales','Vending Sales','Apparel Sales','Personal Training','Other Income'];
 const EXP_LABELS = ['Payroll','Rent','Advertising & Marketing','Coaching Pay','Admin Pay','Gym Equipment','Insurance','Utilities','Supplies','Software & Apps','Other Expenses'];
 
