@@ -129,7 +129,7 @@
   .upload-input{display:none;}
   .revenue-bar{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
   .rev-row{display:flex;align-items:center;gap:8px;}
-  .rev-label{font-size:10px;color:var(--text-mid);width:160px;flex-shrink:0;font-family:'DM Mono',monospace;}
+  .rev-label{font-size:9px;color:var(--text-mid);width:130px;flex-shrink:0;font-family:'DM Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .rev-track{flex:1;height:16px;background:var(--border);border-radius:3px;overflow:hidden;}
   .rev-fill{height:100%;border-radius:3px;}
   .rev-fill.income{background:var(--green);}
@@ -307,37 +307,39 @@
       <!-- Monthly cards -->
       <div class="fin-months" id="fin-months" style="display:none"></div>
 
-      <!-- Revenue Breakdown -->
-      <div class="section-block" id="fin-revenue-block" style="display:none">
-        <div class="section-header">
-          <span class="section-title">💵 REVENUE BREAKDOWN</span>
-          <span class="section-count" id="fin-period">—</span>
-        </div>
-        <div style="padding:16px 18px"><div class="revenue-bar" id="fin-revenue-bars"></div></div>
-      </div>
-
-      <!-- Expense Breakdown -->
-      <div class="section-block" id="fin-expense-block" style="display:none">
-        <div class="section-header"><span class="section-title">💸 EXPENSE BREAKDOWN</span></div>
-        <div style="padding:16px 18px"><div class="revenue-bar" id="fin-expense-bars"></div></div>
-      </div>
-
-      <!-- Line Chart -->
+      <!-- Line Chart - BIG and prominent -->
       <div class="section-block" id="fin-chart-block" style="display:none;margin-bottom:16px;">
-        <div class="section-header"><span class="section-title">📈 MONTH OVER MONTH TREND</span></div>
-        <div style="padding:20px 18px;">
-          <canvas id="fin-chart" height="120"></canvas>
-          <div style="display:flex;gap:20px;justify-content:center;margin-top:12px;">
-            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);font-family:'DM Mono',monospace;">
-              <div style="width:16px;height:3px;background:var(--green);border-radius:2px;"></div> Revenue
+        <div class="section-header">
+          <span class="section-title">📈 MONTH OVER MONTH TREND</span>
+          <div style="display:flex;gap:16px;">
+            <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-dim);font-family:'DM Mono',monospace;">
+              <div style="width:14px;height:3px;background:var(--green);border-radius:2px;"></div>Revenue
             </div>
-            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);font-family:'DM Mono',monospace;">
-              <div style="width:16px;height:3px;background:var(--red);border-radius:2px;"></div> Expenses
+            <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-dim);font-family:'DM Mono',monospace;">
+              <div style="width:14px;height:3px;background:var(--red);border-radius:2px;"></div>Expenses
             </div>
-            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);font-family:'DM Mono',monospace;">
-              <div style="width:16px;height:3px;background:var(--gold);border-radius:2px;border-style:dashed;"></div> Net Income
+            <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-dim);font-family:'DM Mono',monospace;">
+              <div style="width:14px;height:3px;background:var(--gold);border-radius:2px;border-style:dashed;"></div>Net Income
             </div>
           </div>
+        </div>
+        <div style="padding:24px 18px;">
+          <canvas id="fin-chart" height="180"></canvas>
+        </div>
+      </div>
+
+      <!-- Revenue + Expense Breakdown side by side -->
+      <div id="fin-breakdowns" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <div class="section-block" id="fin-revenue-block">
+          <div class="section-header">
+            <span class="section-title">💵 REVENUE</span>
+            <span class="section-count" id="fin-period">—</span>
+          </div>
+          <div style="padding:12px 14px"><div class="revenue-bar" id="fin-revenue-bars"></div></div>
+        </div>
+        <div class="section-block" id="fin-expense-block">
+          <div class="section-header"><span class="section-title">💸 EXPENSES</span></div>
+          <div style="padding:12px 14px"><div class="revenue-bar" id="fin-expense-bars"></div></div>
         </div>
       </div>
 
@@ -605,6 +607,7 @@ function drawLineChart(months, revenue, expenses, netIncome){
   const canvas = document.getElementById('fin-chart');
   const ctx = canvas.getContext('2d');
   canvas.width = canvas.parentElement.offsetWidth - 40;
+  canvas.height = 220;
 
   const labels = months.map(m => m.name);
   const revVals = months.map(m => revenue ? (revenue[m.name] || 0) : 0);
@@ -883,6 +886,7 @@ function renderFinancials(rows){
   }).join('');
 
   // Revenue bars
+  document.getElementById('fin-breakdowns').style.display = 'grid';
   document.getElementById('fin-revenue-block').style.display = 'block';
   const revItems = [
     {label:'Membership',       val: membership ? Math.abs(membership.Total||0) : 0},
@@ -940,6 +944,7 @@ function drawLineChart(months, revenue, expenses, netIncome){
   const canvas = document.getElementById('fin-chart');
   const ctx = canvas.getContext('2d');
   canvas.width = canvas.parentElement.offsetWidth - 40;
+  canvas.height = 220;
 
   const labels = months.map(m => m.name);
   const revVals = months.map(m => revenue ? (revenue[m.name] || 0) : 0);
