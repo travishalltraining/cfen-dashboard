@@ -100,6 +100,40 @@
   .search-bar:focus{border-color:var(--red);}
   .search-bar::placeholder{color:var(--text-dim);}
   .empty{text-align:center;padding:28px;color:var(--text-dim);font-size:12px;}
+  .fin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+  .fin-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 20px;}
+  .fin-card.positive{border-left:3px solid var(--green);}
+  .fin-card.negative{border-left:3px solid var(--red);}
+  .fin-card.neutral{border-left:3px solid var(--gold);}
+  .fin-card.accent{border-left:3px solid var(--blue);}
+  .fin-label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);font-weight:600;margin-bottom:6px;}
+  .fin-value{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;color:var(--white);}
+  .fin-sub{font-size:10px;color:var(--text-dim);margin-top:3px;}
+  .fin-months{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px;}
+  .fin-month{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 20px;}
+  .fin-month-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1.5px;color:var(--white);margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px;}
+  .fin-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+  .fin-row:last-child{border-bottom:none;}
+  .fin-row-label{font-size:12px;color:var(--text-mid);}
+  .fin-row-val{font-size:12px;font-family:'DM Mono',monospace;color:var(--text);}
+  .fin-row-val.pos{color:var(--green);}
+  .fin-row-val.neg{color:var(--red);}
+  .fin-row.total-row .fin-row-label{font-weight:600;color:var(--text);font-size:13px;}
+  .fin-row.total-row .fin-row-val{font-weight:600;font-size:13px;}
+  .upload-area{background:var(--card);border:2px dashed var(--border);border-radius:10px;padding:40px;text-align:center;margin-bottom:18px;cursor:pointer;transition:all 0.2s;}
+  .upload-area:hover,.upload-area.dragover{border-color:var(--red);background:var(--red-dim);}
+  .upload-area .upload-icon{font-size:32px;margin-bottom:10px;}
+  .upload-area .upload-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--white);margin-bottom:6px;}
+  .upload-area .upload-sub{font-size:12px;color:var(--text-dim);}
+  .upload-input{display:none;}
+  .revenue-bar{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+  .rev-row{display:flex;align-items:center;gap:8px;}
+  .rev-label{font-size:10px;color:var(--text-mid);width:160px;flex-shrink:0;font-family:'DM Mono',monospace;}
+  .rev-track{flex:1;height:16px;background:var(--border);border-radius:3px;overflow:hidden;}
+  .rev-fill{height:100%;border-radius:3px;}
+  .rev-fill.income{background:var(--green);}
+  .rev-fill.expense{background:var(--red);}
+  .rev-val{font-size:10px;color:var(--text-dim);width:70px;text-align:right;font-family:'DM Mono',monospace;}
 </style>
 </head>
 <body>
@@ -120,6 +154,8 @@
     <div class="nav-section">Classes</div>
     <button class="nav-item" onclick="showPage('signins')"><span class="nav-icon">📊</span> Class Usage</button>
     <button class="nav-item" onclick="showPage('milestones')"><span class="nav-icon">🏆</span> Milestones</button>
+    <div class="nav-section">Business</div>
+    <button class="nav-item" onclick="showPage('financials')"><span class="nav-icon">💰</span> Financials</button>
   </nav>
   <div class="last-updated"><span class="dot loading" id="status-dot"></span><span id="update-time">Connecting…</span></div>
 </aside>
@@ -253,7 +289,7 @@
 
 <script>
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby5hUlbT986vsyCT0PROqR3DuLuvFUhPM95tIQwoVYWzl2yvzdV_tchL0Ju8TNnCOyP/exec';
-const pageTitles = {summary:'DAILY SUMMARY',members:'ALL MEMBERS',risk:'AT-RISK MEMBERS',expiring:'NEW & EXPIRING',signins:'CLASS USAGE',milestones:'MILESTONES'};
+const pageTitles = {summary:'DAILY SUMMARY',members:'ALL MEMBERS',risk:'AT-RISK MEMBERS',expiring:'NEW & EXPIRING',signins:'CLASS USAGE',milestones:'MILESTONES',financials:'FINANCIAL HEALTH'};
 const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 let allMembersData = [];
 
@@ -501,6 +537,160 @@ function loadLive(){
 
 setDate();
 loadLive();
+
+// ── FINANCIALS ────────────────────────────────────────────
+function fmt$(n){ return '$' + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function fmtPct(n){ return (n>=0?'+':'')+n.toFixed(1)+'%'; }
+
+function handleFinUpload(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try {
+      // Use SheetJS to parse
+      const XLSX = window.XLSX;
+      if(!XLSX){ loadSheetJS(()=>parseXLSX(ev.target.result)); return; }
+      parseXLSX(ev.target.result);
+    } catch(err){ alert('Error reading file: ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function loadSheetJS(cb){
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload = cb;
+  document.head.appendChild(s);
+}
+
+function parseXLSX(data){
+  const XLSX = window.XLSX;
+  const wb = XLSX.read(data, {type:'arraybuffer'});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+  renderFinancials(rows);
+}
+
+function renderFinancials(rows){
+  // Find header row with month columns
+  let headerRow = -1, months = [], totalCol = -1;
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    const hasMonth = r.some(c => typeof c === 'string' && (c.includes('Jan')||c.includes('Feb')||c.includes('Mar')||c.includes('Apr')||c.includes('May')||c.includes('Jun')||c.includes('Jul')||c.includes('Aug')||c.includes('Sep')||c.includes('Oct')||c.includes('Nov')||c.includes('Dec')));
+    if(hasMonth){ headerRow = i; break; }
+  }
+  if(headerRow < 0){ alert('Could not find month columns. Please upload a QuickBooks P&L export.'); return; }
+
+  const header = rows[headerRow];
+  header.forEach((h,i)=>{ if(typeof h === 'string' && h.trim()) { if(h.toLowerCase().includes('total')) totalCol=i; else if(h.trim()) months.push({name:h.trim(),col:i}); } });
+
+  // Parse key line items
+  const find = (label) => {
+    for(let r of rows){
+      const cell = String(r[0]||'').toLowerCase().trim();
+      if(cell === label.toLowerCase().trim()){
+        const vals = {};
+        months.forEach(m=>vals[m.name]=parseFloat(r[m.col])||0);
+        vals['Total'] = parseFloat(r[totalCol])||0;
+        return vals;
+      }
+    }
+    return null;
+  };
+
+  const revenue = find('Total for Income') || find('Total Income') || find('Gross Profit');
+  const expenses = find('Total for Expenses') || find('Total Expenses');
+  const netIncome = find('Net Income');
+  const payroll = find('Total for Payroll expenses') || find('Total Payroll');
+  const rent = find('Total for Rent') || find('Rent');
+  const adv = find('Total for Advertising & marketing') || find('Advertising & marketing');
+  const membership = find('Membership');
+  const sgpt = find('Semi Private Training');
+  const dropIn = find('Drop In Sales');
+  const elements = find('Elements Training');
+  const vending = find('Vending Sales');
+  const netOp = find('Net Operating Income');
+
+  if(!revenue){ alert('Could not parse P&L data. Make sure this is a QuickBooks export.'); return; }
+
+  const totalRev = revenue.Total || 0;
+  const totalExp = expenses ? expenses.Total : 0;
+  const totalNet = netIncome ? netIncome.Total : (totalRev - totalExp);
+  const margin = totalRev > 0 ? (totalNet/totalRev*100) : 0;
+  const period = months.map(m=>m.name).join(' – ');
+
+  // Show summary cards
+  document.getElementById('fin-summary').style.display = 'grid';
+  document.getElementById('fin-revenue').textContent = fmt$(totalRev);
+  document.getElementById('fin-expenses').textContent = fmt$(totalExp);
+  document.getElementById('fin-net').textContent = fmt$(totalNet);
+  document.getElementById('fin-net').style.color = totalNet >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('fin-margin').textContent = fmtPct(margin);
+  document.getElementById('fin-margin').style.color = margin >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('fin-period').textContent = period;
+
+  // Monthly breakdown
+  document.getElementById('fin-months').style.display = 'grid';
+  document.getElementById('fin-months').innerHTML = months.map(m => {
+    const rev = revenue[m.name] || 0;
+    const exp = expenses ? (expenses[m.name]||0) : 0;
+    const net = netIncome ? (netIncome[m.name]||0) : (rev-exp);
+    const mgn = rev > 0 ? (net/rev*100) : 0;
+    return `<div class="fin-month">
+      <div class="fin-month-title">${m.name}</div>
+      <div class="fin-row"><span class="fin-row-label">Revenue</span><span class="fin-row-val pos">${fmt$(rev)}</span></div>
+      <div class="fin-row"><span class="fin-row-label">Expenses</span><span class="fin-row-val neg">${fmt$(exp)}</span></div>
+      ${payroll ? `<div class="fin-row"><span class="fin-row-label">Payroll</span><span class="fin-row-val">${fmt$(payroll[m.name]||0)}</span></div>` : ''}
+      ${rent ? `<div class="fin-row"><span class="fin-row-label">Rent</span><span class="fin-row-val">${fmt$(rent[m.name]||0)}</span></div>` : ''}
+      <div class="fin-row total-row"><span class="fin-row-label">Net Income</span><span class="fin-row-val ${net>=0?'pos':'neg'}">${fmt$(net)}</span></div>
+      <div class="fin-row"><span class="fin-row-label">Margin</span><span class="fin-row-val ${mgn>=0?'pos':'neg'}">${fmtPct(mgn)}</span></div>
+    </div>`;
+  }).join('');
+
+  // Revenue bars
+  document.getElementById('fin-revenue-block').style.display = 'block';
+  const revenueItems = [
+    {label:'Membership', val: membership?membership.Total:0},
+    {label:'Semi Private PT', val: sgpt?sgpt.Total:0},
+    {label:'Elements Training', val: elements?elements.Total:0},
+    {label:'Drop In Sales', val: dropIn?dropIn.Total:0},
+    {label:'Vending Sales', val: vending?vending.Total:0},
+  ].filter(x=>x.val>0).sort((a,b)=>b.val-a.val);
+  const maxRev = Math.max(...revenueItems.map(x=>x.val));
+  document.getElementById('fin-revenue-bars').innerHTML = revenueItems.map(r=>`
+    <div class="rev-row">
+      <div class="rev-label">${r.label}</div>
+      <div class="rev-track"><div class="rev-fill income" style="width:${maxRev>0?Math.round(r.val/maxRev*100):0}%"></div></div>
+      <div class="rev-val">${fmt$(r.val)}</div>
+    </div>`).join('');
+
+  // Expense bars
+  document.getElementById('fin-expense-block').style.display = 'block';
+  const expItems = [
+    {label:'Payroll', val: payroll?payroll.Total:0},
+    {label:'Rent', val: rent?rent.Total:0},
+    {label:'Advertising', val: adv?adv.Total:0},
+  ].filter(x=>x.val>0).sort((a,b)=>b.val-a.val);
+  const maxExp = Math.max(...expItems.map(x=>x.val));
+  document.getElementById('fin-expense-bars').innerHTML = expItems.map(r=>`
+    <div class="rev-row">
+      <div class="rev-label">${r.label}</div>
+      <div class="rev-track"><div class="rev-fill expense" style="width:${maxExp>0?Math.round(r.val/maxExp*100):0}%"></div></div>
+      <div class="rev-val">${fmt$(r.val)}</div>
+    </div>`).join('');
+
+  // Hide upload area
+  document.getElementById('upload-area').style.display = 'none';
+}
+
+// Drag and drop
+const ua = document.getElementById('upload-area');
+if(ua){
+  ua.addEventListener('dragover', e=>{ e.preventDefault(); ua.classList.add('dragover'); });
+  ua.addEventListener('dragleave', ()=>ua.classList.remove('dragover'));
+  ua.addEventListener('drop', e=>{ e.preventDefault(); ua.classList.remove('dragover'); const f=e.dataTransfer.files[0]; if(f){ const inp=document.getElementById('fin-upload'); const dt=new DataTransfer(); dt.items.add(f); inp.files=dt.files; handleFinUpload({target:inp}); } });
+}
 </script>
 </body>
 </html>
