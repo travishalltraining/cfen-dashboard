@@ -367,23 +367,23 @@ function renderData(data) {
   const expiring = data.expiring || [];
   const summary = Array.isArray(data.summary) ? (data.summary[0] || {}) : (data.summary || {});
 
-  const paying  = members.filter(m => m.client_status === 'Active');
-  const free    = members.filter(m => m.client_status !== 'Active');
+  const paying  = members.filter(m => m.membership_is_active === 'true' || m.membership_is_active === true);
+  const free    = members.filter(m => m.membership_is_active !== 'true' && m.membership_is_active !== true);
   const risk714  = paying.filter(m => { const d=parseInt(m.days_since_last_attendance); return d>=7&&d<=14; });
   const risk1529 = paying.filter(m => { const d=parseInt(m.days_since_last_attendance); return d>=15&&d<=29; });
   const risk30   = paying.filter(m => { const d=parseInt(m.days_since_last_attendance); return d>=30; });
   const elements = paying.filter(m => m.default_program && m.default_program.toLowerCase().includes('element'));
 
   // Summary cards
-  document.getElementById('s-paying').textContent   = summary.paying_members_count  || paying.length;
-  document.getElementById('s-free').textContent     = summary.free_members_count    || free.length;
-  document.getElementById('s-watchlist').textContent= summary.new_members_count     || newM.length;
-  document.getElementById('s-bday').textContent     = summary.birthdays_today       || bdays.length;
-  document.getElementById('s-signins').textContent  = summary.sign_ins_yesterday    || '0';
-  document.getElementById('s-elements').textContent = summary.elements_count        || elements.length;
-  document.getElementById('s-r714').textContent     = summary.risk_7_14             || risk714.length;
-  document.getElementById('s-r1529').textContent    = summary.risk_15_29            || risk1529.length;
-  document.getElementById('s-r30').textContent      = summary.risk_30_plus          || risk30.length;
+  document.getElementById('s-paying').textContent   = summary.active_memberships || paying.length;
+  document.getElementById('s-free').textContent     = free.length;
+  document.getElementById('s-watchlist').textContent= summary.new_member_watchlist_count || newM.length;
+  document.getElementById('s-bday').textContent     = summary.birthdays_today_count || bdays.length;
+  document.getElementById('s-signins').textContent  = summary.total_class_sign_ins_yesterday || '0';
+  document.getElementById('s-elements').textContent = elements.length;
+  document.getElementById('s-r714').textContent     = summary.risk_7_to_14_count || risk714.length;
+  document.getElementById('s-r1529').textContent    = summary.risk_15_to_29_count || risk1529.length;
+  document.getElementById('s-r30').textContent      = summary.risk_30_plus_count || risk30.length;
 
   // Birthdays
   if (bdays.length) {
