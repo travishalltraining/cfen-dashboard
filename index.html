@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CrossFit East Nashville — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -570,11 +571,15 @@ function fmtPct(n){ return (n>=0?'+':'')+n.toFixed(1)+'%'; }
 function handleFinUpload(e){
   const file = e.target.files[0];
   if(!file) return;
+  document.getElementById('upload-area').innerHTML = '<div class="upload-icon">⏳</div><div class="upload-title">Parsing ' + file.name + '...</div>';
   const reader = new FileReader();
   reader.onload = function(ev){
-    const data = ev.target.result;
-    if(window.XLSX){ parseXLSX(data); }
-    else { loadSheetJS(()=>parseXLSX(data)); }
+    try {
+      parseXLSX(ev.target.result);
+    } catch(err){
+      alert('Error: ' + err.message);
+      console.error(err);
+    }
   };
   reader.onerror = ()=>alert('Could not read file.');
   reader.readAsArrayBuffer(file);
