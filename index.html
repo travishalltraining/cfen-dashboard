@@ -252,7 +252,7 @@
 
 <script>
 // ── CONFIG ──────────────────────────────────────────────
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzWqvmiI77t9sPhh76p3vIw9G09NZvO93BqAy7msXVC5UNifZ0NMRohFkKG_Yioook6/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz6dhJwFH60RnJVxLyEpEQa4I2QNU4TBlxphuqsVtCloUGJDu6bRtY_HaXoeOj1QQW2/exec';
 // ────────────────────────────────────────────────────────
 
 const pageTitles = {summary:'DAILY SUMMARY',members:'ALL MEMBERS',risk:'AT-RISK MEMBERS',expiring:'NEW & EXPIRING',signins:'CLASS USAGE',milestones:'MILESTONES'};
@@ -410,7 +410,7 @@ function renderData(data) {
   document.getElementById('new-members-list').innerHTML = newM.length
     ? newM.map((m,i) => {
         const la = m.days_since_last_attendance;
-        return `<tr><td class="row-num">${i+1}</td><td>${m.display_name||'—'}</td><td class="num-cell">${m.days_since_joining||'—'}d</td><td class="num-cell">${la&&la!=='null'?la+'d':'—'}</td></tr>`;
+        return `<tr><td class="row-num">${i+1}</td><td>${m.display_name||'—'}</td><td class="num-cell">${m.days_since_join||'—'}d</td><td class="num-cell">${la&&la!=='null'?la+'d':'—'}</td></tr>`;
       }).join('')
     : '<tr><td colspan="4" class="empty">No new members</td></tr>';
 
