@@ -160,6 +160,7 @@
     <button class="nav-item" onclick="showPage('milestones')"><span class="nav-icon">🏆</span> Milestones</button>
     <div class="nav-section">Business</div>
     <button class="nav-item" onclick="showPage('financials');loadFinancials();loadFinancialHealthMetrics()"><span class="nav-icon">💰</span> Financials</button>
+    <button class="nav-item" onclick="showPage('churn');loadChurnData()"><span class="nav-icon">📉</span> Churn Analysis</button>
   </nav>
   <div class="last-updated"><span class="dot loading" id="status-dot"></span><span id="update-time">Connecting…</span></div>
 </aside>
@@ -409,12 +410,39 @@
       </div>
 
     </div>
+    <!-- CHURN PAGE -->
+    <div class="page" id="page-churn">
+
+      <!-- Summary cards -->
+      <div class="fin-grid" id="churn-summary" style="display:none;margin-bottom:18px;">
+        <div class="fin-card negative"><div class="fin-label">AVG MONTHLY CHURN</div><div class="fin-value" id="churn-avg">—</div><div class="fin-sub">Historical average</div></div>
+        <div class="fin-card neutral"><div class="fin-label">LATEST MONTH CHURN</div><div class="fin-value" id="churn-latest">—</div><div class="fin-sub" id="churn-latest-month">—</div></div>
+        <div class="fin-card positive"><div class="fin-label">AVG NEW MEMBERS</div><div class="fin-value" id="churn-new-avg">—</div><div class="fin-sub">Per month</div></div>
+        <div class="fin-card accent"><div class="fin-label">NET GROWTH TREND</div><div class="fin-value" id="churn-net-trend">—</div><div class="fin-sub">New minus churned</div></div>
+      </div>
+
+      <!-- Month cards -->
+      <div id="churn-months" style="display:none;"></div>
+
+      <!-- Loading state -->
+      <div id="churn-loading" style="text-align:center;padding:60px;color:var(--text-dim);">
+        <div style="font-size:32px;margin-bottom:12px;">📉</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--text-mid);margin-bottom:6px;">Loading Churn Data...</div>
+        <div style="font-size:12px;">Analyzing member history from BigQuery</div>
+      </div>
+
+      <!-- Note about data history -->
+      <div id="churn-note" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-top:16px;font-size:12px;color:var(--text-dim);">
+        💡 <strong style="color:var(--text-mid);">Note:</strong> Churn tracking started April 22, 2026. Full monthly data will be available starting June 2026. Current data shows partial months.
+      </div>
+    </div>
+
   </div>
 </main>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_jjVZ2jZEqnqZuuDQIRnW_GfLeJlAOV94_ASKVM_FuJU184CrtDKYi00nujTyz9yx/exec';
-const pageTitles = {summary:'DAILY SUMMARY',members:'ALL MEMBERS',risk:'AT-RISK MEMBERS',expiring:'NEW & EXPIRING',signins:'CLASS USAGE',milestones:'MILESTONES',financials:'FINANCIAL HEALTH'};
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7hHQsEz9lTUGBc2UswIzc4Jxy2gn4gnAqlsiXZDoZpVXRoTiuFHapIH_xyks-3fA-/exec';
+const pageTitles = {summary:'DAILY SUMMARY',members:'ALL MEMBERS',risk:'AT-RISK MEMBERS',expiring:'NEW & EXPIRING',signins:'CLASS USAGE',milestones:'MILESTONES',financials:'FINANCIAL HEALTH',churn:'CHURN ANALYSIS'};
 const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 let allMembersData = [];
 
@@ -1116,6 +1144,31 @@ try {
   }
 } catch(e){ console.warn('Could not restore P&L data:', e); }
 
+function loadHealthMetrics(){
+  const old = document.getElementById('health-jsonp');
+  if(old) old.remove();
+  window.__healthCB = function(data){
+    if(!data || !data.businessHealth || !data.businessHealth.length) return;
+    const bh = data.businessHealth[0];
+    const ret30 = parseFloat(bh.retention_30d)||0;
+    const ret60 = parseFloat(bh.retention_60d)||0;
+    const ret90 = parseFloat(bh.retention_90d)||0;
+    const churn = parseFloat(bh.churn_risk_pct)||0;
+    window._payingMembers = parseFloat(bh.paying_members)||1;
+    const retColor = v => v>=80?'var(--green)':v>=60?'var(--gold)':'var(--red)';
+    const churnColor = churn<=10?'var(--green)':churn<=20?'var(--gold)':'var(--red)';
+    const set = (id,val,color) => { const el=document.getElementById(id); if(el){el.textContent=val; if(color) el.style.color=color;} };
+    set('bh-ret30', ret30+'%', retColor(ret30));
+    set('bh-ret60', ret60+'%', retColor(ret60));
+    set('bh-ret90', ret90+'%', retColor(ret90));
+    set('bh-churn', churn+'%', churnColor);
+  };
+  const s = document.createElement('script');
+  s.id = 'health-jsonp';
+  s.src = SCRIPT_URL + '?callback=__healthCB&action=health&t=' + Date.now();
+  document.head.appendChild(s);
+}
+
 function loadFinancialHealthMetrics(){
   const old = document.getElementById('bh-fin-script');
   if(old) old.remove();
@@ -1164,6 +1217,71 @@ function loadFinancialHealthMetrics(){
   s.id = 'bh-fin-script';
   s.src = SCRIPT_URL + '?callback=__bhFinCB&action=financials&t=' + Date.now();
   document.head.appendChild(s);
+}
+
+function loadChurnData(){
+  document.getElementById('churn-loading').style.display = 'block';
+  document.getElementById('churn-summary').style.display = 'none';
+  document.getElementById('churn-months').style.display = 'none';
+  const old = document.getElementById('churn-jsonp');
+  if(old) old.remove();
+  window.__churnCB = function(data){
+    document.getElementById('churn-loading').style.display = 'none';
+    if(!data || !data.churn || !data.churn.length){
+      document.getElementById('churn-loading').innerHTML = '<div style="font-size:32px">📭</div><div style="font-family:Bebas Neue,sans-serif;font-size:18px;color:var(--text-mid)">No Churn Data Yet</div><div style="font-size:12px;color:var(--text-dim);margin-top:6px">Data will appear once we have at least 2 months of snapshots</div>';
+      document.getElementById('churn-loading').style.display = 'block';
+      return;
+    }
+    renderChurn(data.churn);
+  };
+  const s = document.createElement('script');
+  s.id = 'churn-jsonp';
+  s.src = SCRIPT_URL + '?callback=__churnCB&action=churn&t=' + Date.now();
+  document.head.appendChild(s);
+}
+
+function renderChurn(rows){
+  const MNAME = {"2026-01":"Jan 2026","2026-02":"Feb 2026","2026-03":"Mar 2026","2026-04":"Apr 2026","2026-05":"May 2026","2026-06":"Jun 2026","2026-07":"Jul 2026","2026-08":"Aug 2026","2026-09":"Sep 2026","2026-10":"Oct 2026","2026-11":"Nov 2026","2026-12":"Dec 2026"};
+  const rates = rows.map(r=>parseFloat(r.churn_rate_pct)||0);
+  const avgChurn = rates.length ? (rates.reduce((a,b)=>a+b,0)/rates.length).toFixed(1) : 0;
+  const latest = rows[rows.length-1];
+  const avgNew = rows.length ? Math.round(rows.reduce((a,r)=>a+(parseFloat(r.new_members)||0),0)/rows.length) : 0;
+  const netTrend = rows.length >= 2 ?
+    ((parseFloat(rows[rows.length-1].new_members)||0) - (parseFloat(rows[rows.length-1].churned)||0)) : 0;
+
+  document.getElementById('churn-summary').style.display = 'grid';
+  document.getElementById('churn-note').style.display = 'block';
+
+  const churnColor = (v) => v <= 3?'var(--green)':v<=6?'var(--gold)':'var(--red)';
+  const set = (id,val,color) => { const el=document.getElementById(id); if(el){el.textContent=val; if(color) el.style.color=color;} };
+
+  set('churn-avg', avgChurn + '%', churnColor(avgChurn));
+  set('churn-latest', (parseFloat(latest.churn_rate_pct)||0).toFixed(1) + '%', churnColor(parseFloat(latest.churn_rate_pct)||0));
+  set('churn-latest-month', MNAME[latest.month] || latest.month);
+  set('churn-new-avg', avgNew + '/mo', 'var(--green)');
+  set('churn-net-trend', (netTrend >= 0 ? '+' : '') + netTrend + ' members', netTrend >= 0 ? 'var(--green)' : 'var(--red)');
+
+  // Month cards
+  document.getElementById('churn-months').style.display = 'block';
+  document.getElementById('churn-months').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">
+    ${rows.map(r=>{
+      const churnPct = parseFloat(r.churn_rate_pct)||0;
+      const churned = parseInt(r.churned)||0;
+      const newM = parseInt(r.new_members)||0;
+      const active = parseInt(r.active_members)||0;
+      const net = newM - churned;
+      const color = churnColor(churnPct);
+      return `<div class="fin-month">
+        <div class="fin-month-title" style="font-size:15px;">${MNAME[r.month]||r.month}</div>
+        <div class="fin-row"><span class="fin-row-label">Active Members</span><span class="fin-row-val">${active}</span></div>
+        <div class="fin-row"><span class="fin-row-label">Members Lost</span><span class="fin-row-val neg">${churned}</span></div>
+        <div class="fin-row"><span class="fin-row-label">New Members</span><span class="fin-row-val pos">${newM}</span></div>
+        <div class="fin-row"><span class="fin-row-label">Net Change</span><span class="fin-row-val" style="color:${net>=0?'var(--green)':'var(--red)'}">${net>=0?'+':''}${net}</span></div>
+        <div class="fin-row total-row"><span class="fin-row-label">Churn Rate</span><span class="fin-row-val" style="color:${color}">${churnPct.toFixed(1)}%</span></div>
+      </div>`;
+    }).join('')}
+    </div>`;
 }
 
 setDate();
