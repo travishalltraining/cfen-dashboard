@@ -352,7 +352,7 @@
         <div class="fin-card negative">
           <div class="fin-label">PAYROLL % REVENUE</div>
           <div class="fin-value" id="bh-payroll-pct">—</div>
-          <div class="fin-sub">Target &lt;40% · incl. coaching</div>
+          <div class="fin-sub">YTD payroll · target &lt;40%</div>
         </div>
         <div class="fin-card positive">
           <div class="fin-label">MEMBERSHIP REVENUE</div>
@@ -1203,17 +1203,22 @@ function loadFinancialHealthMetrics(){
     const latest = sorted.find(r => parseFloat(r.total_revenue) > 0) || sorted[0];
     if(!latest) return;
 
+    // Use YTD totals across all months for percentage calculations
+    const validMonths = data.financials.filter(r => parseFloat(r.total_revenue) > 0);
+    const ytdRev      = validMonths.reduce((s,r) => s + (parseFloat(r.total_revenue)||0), 0);
+    const ytdPayroll  = validMonths.reduce((s,r) => s + (parseFloat(r.payroll)||0), 0);
+    const ytdCoaching = validMonths.reduce((s,r) => s + (parseFloat(r.coaching_pay)||0), 0);
+    const ytdMembership = validMonths.reduce((s,r) => s + (parseFloat(r.membership)||0), 0);
+    const ytdSgpt     = validMonths.reduce((s,r) => s + (parseFloat(r.semi_private_training)||0), 0);
+
+    // Revenue per member uses latest month only
     const rev      = parseFloat(latest.total_revenue)||0;
-    const payroll  = parseFloat(latest.payroll)||0;
-    const coaching = parseFloat(latest.coaching_pay)||0;
-    const membership = parseFloat(latest.membership)||0;
-    const sgpt     = parseFloat(latest.semi_private_training)||0;
     const paying   = window._payingMembers || 1;
 
     const revPerMember  = rev > 0 && paying > 0 ? Math.round(rev / paying) : 0;
-    const payrollPct    = rev > 0 ? Math.round((payroll + coaching) / rev * 100) : 0;
-    const membershipPct = rev > 0 ? Math.round(membership / rev * 100) : 0;
-    const sgptPct       = rev > 0 ? Math.round(sgpt / rev * 100) : 0;
+    const payrollPct    = ytdRev > 0 ? Math.round(ytdPayroll / ytdRev * 100) : 0;
+    const membershipPct = ytdRev > 0 ? Math.round(ytdMembership / ytdRev * 100) : 0;
+    const sgptPct       = ytdRev > 0 ? Math.round(ytdSgpt / ytdRev * 100) : 0;
 
     // Show KPI grid on financials page
     const kpiGrid = document.getElementById('fin-kpi-grid');
@@ -1318,11 +1323,10 @@ function loadOnDemand(action){
     if(action === 'classusage'){
       const yesterday = data.signInsYesterday && data.signInsYesterday[0];
       if(yesterday) document.getElementById('s-signins').textContent = yesterday.total || '0';
-      // Use actual chart functions
-      if(data.cfByTime)  makeBarChart('cf-time-chart',  data.cfByTime,  'class_time',        'count');
-      if(data.cfByDay)   makeDayChart('cf-day-chart',   data.cfByDay,   'class_day_of_week', 'count');
-      if(data.sgptByTime)makeBarChart('sgpt-time-chart',data.sgptByTime,'class_time',        'count');
-      if(data.sgptByDay) makeDayChart('sgpt-day-chart', data.sgptByDay, 'class_day_of_week', 'count');
+      if(data.cfByTime)   makeBarChart('cf-time-chart',   data.cfByTime,   'class_time',        'count');
+      if(data.cfByDay)    makeDayChart('cf-day-chart',    data.cfByDay,    'class_day_of_week');
+      if(data.sgptByTime) makeBarChart('sgpt-time-chart', data.sgptByTime, 'class_time',        'count');
+      if(data.sgptByDay)  makeDayChart('sgpt-day-chart',  data.sgptByDay,  'class_day_of_week');
     }
     if(action === 'milestones'){
       // Use actual milestone render functions
