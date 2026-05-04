@@ -603,13 +603,6 @@ function renderData(data){
     document.getElementById('birthday-block').style.display='none';
   }
 
-  // Set paying members for financial metrics
-  window._payingMembers = parseInt(summary.active_memberships) || 287;
-
-  // Load health + financial metrics via separate fast endpoints
-  setTimeout(loadHealthMetrics, 300);
-  setTimeout(loadFinancialHealthMetrics, 3000);
-
   // All members
   allMembersData = members;
   renderMemberTable(members);
@@ -683,8 +676,17 @@ function loadLive(){
   const old = document.getElementById('jsonp-script');
   if(old) old.remove();
   window.__cfenCallback = function(data){
-    if(data && !data.error){ window.__lastData = data; renderData(data); setStatus('live'); }
-    else{ console.warn('Apps Script error:', data&&data.error); setStatus('demo'); }
+    if(data && !data.error){
+      window.__lastData = data;
+      window._payingMembers = parseInt((data.summary&&data.summary[0]&&data.summary[0].active_memberships)||287);
+      renderData(data);
+      setStatus('live');
+      setTimeout(loadHealthMetrics, 500);
+      setTimeout(loadFinancialHealthMetrics, 2000);
+    } else {
+      console.warn('Apps Script error:', data&&data.error);
+      setStatus('demo');
+    }
   };
   const script = document.createElement('script');
   script.id = 'jsonp-script';
