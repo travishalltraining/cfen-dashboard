@@ -1,3 +1,4 @@
+<!-- CFEN Dashboard v20260504143828 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -601,6 +602,13 @@ function renderData(data){
   } else {
     document.getElementById('birthday-block').style.display='none';
   }
+
+  // Set paying members for financial metrics
+  window._payingMembers = parseInt(summary.active_memberships) || 287;
+
+  // Load health + financial metrics via separate fast endpoints
+  setTimeout(loadHealthMetrics, 300);
+  setTimeout(loadFinancialHealthMetrics, 3000);
 
   // All members
   allMembersData = members;
