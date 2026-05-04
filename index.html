@@ -195,6 +195,54 @@
         <table><thead><tr><th>Member</th><th>Email</th></tr></thead>
         <tbody id="birthday-list"></tbody></table>
       </div>
+
+      <!-- Business Health Section -->
+      <div style="margin-top:18px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--text-dim);margin-bottom:12px;">BUSINESS HEALTH</div>
+
+        <!-- Retention Row -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;">
+          <div class="stat-card" style="border-left:3px solid var(--green);">
+            <div class="stat-label">30-DAY RETENTION</div>
+            <div class="stat-value" id="bh-ret30">—</div>
+            <div class="stat-sub">Joined 30-60 days ago</div>
+          </div>
+          <div class="stat-card" style="border-left:3px solid var(--green);">
+            <div class="stat-label">60-DAY RETENTION</div>
+            <div class="stat-value" id="bh-ret60">—</div>
+            <div class="stat-sub">Joined 60-90 days ago</div>
+          </div>
+          <div class="stat-card" style="border-left:3px solid var(--green);">
+            <div class="stat-label">90-DAY RETENTION</div>
+            <div class="stat-value" id="bh-ret90">—</div>
+            <div class="stat-sub">Joined 90-120 days ago</div>
+          </div>
+        </div>
+
+        <!-- Financial Health Row -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;" id="bh-financial-row">
+          <div class="stat-card" style="border-left:3px solid var(--gold);">
+            <div class="stat-label">REVENUE / MEMBER</div>
+            <div class="stat-value" id="bh-rev-per-member">—</div>
+            <div class="stat-sub">Latest month</div>
+          </div>
+          <div class="stat-card" style="border-left:3px solid var(--red);">
+            <div class="stat-label">CHURN RISK</div>
+            <div class="stat-value" id="bh-churn">—</div>
+            <div class="stat-sub">30+ days no visit</div>
+          </div>
+          <div class="stat-card" style="border-left:3px solid var(--orange);">
+            <div class="stat-label">PAYROLL % REVENUE</div>
+            <div class="stat-value" id="bh-payroll-pct">—</div>
+            <div class="stat-sub">Latest month · target &lt;40%</div>
+          </div>
+          <div class="stat-card" style="border-left:3px solid var(--blue);">
+            <div class="stat-label">MEMBERSHIP + SGPT</div>
+            <div class="stat-value" id="bh-core-pct">—</div>
+            <div class="stat-sub">% of total revenue</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ALL MEMBERS -->
@@ -356,7 +404,7 @@
 </main>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2Kssan0VYjOpvki1CCzwNxZ2EamGJQfEiQtaQjcheFpi3AAy0eGbLLqw0ZscWHig_/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_jjVZ2jZEqnqZuuDQIRnW_GfLeJlAOV94_ASKVM_FuJU184CrtDKYi00nujTyz9yx/exec';
 const pageTitles = {summary:'DAILY SUMMARY',members:'ALL MEMBERS',risk:'AT-RISK MEMBERS',expiring:'NEW & EXPIRING',signins:'CLASS USAGE',milestones:'MILESTONES',financials:'FINANCIAL HEALTH'};
 const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 let allMembersData = [];
@@ -1058,6 +1106,46 @@ try {
     }
   }
 } catch(e){ console.warn('Could not restore P&L data:', e); }
+
+function loadFinancialHealthMetrics(){
+  // Pull latest month from financials endpoint and compute metrics
+  const old = document.getElementById('bh-fin-script');
+  if(old) old.remove();
+  window.__bhFinCB = function(data){
+    if(!data || !data.financials || !data.financials.length) return;
+    const MONTH_NUM2 = {January:1,February:2,March:3,April:4,May:5,June:6,July:7,August:8,September:9,October:10,November:11,December:12};
+    const sorted = [...data.financials].sort((a,b)=>{
+      const ya=parseInt(a.report_year)||0, yb=parseInt(b.report_year)||0;
+      if(ya!==yb) return yb-ya;
+      return (MONTH_NUM2[b.report_month]||0)-(MONTH_NUM2[a.report_month]||0);
+    });
+    const latest = sorted[0];
+    if(!latest) return;
+
+    const rev = parseFloat(latest.total_revenue)||0;
+    const payroll = parseFloat(latest.payroll)||0;
+    const coaching = parseFloat(latest.coaching_pay)||0;
+    const membership = parseFloat(latest.membership)||0;
+    const sgpt = parseFloat(latest.semi_private_training)||0;
+    const paying = window._payingMembers || 1;
+
+    const revPerMember = rev > 0 && paying > 0 ? Math.round(rev / paying) : 0;
+    const payrollPct = rev > 0 ? Math.round((payroll + coaching) / rev * 100) : 0;
+    const corePct = rev > 0 ? Math.round((membership + sgpt) / rev * 100) : 0;
+
+    const rpm = document.getElementById('bh-rev-per-member');
+    const pp = document.getElementById('bh-payroll-pct');
+    const cp = document.getElementById('bh-core-pct');
+
+    if(rpm){ rpm.textContent = '$' + revPerMember.toLocaleString(); rpm.style.color = revPerMember > 150 ? 'var(--green)' : 'var(--gold)'; }
+    if(pp){ pp.textContent = payrollPct + '%'; pp.style.color = payrollPct <= 40 ? 'var(--green)' : payrollPct <= 50 ? 'var(--gold)' : 'var(--red)'; }
+    if(cp){ cp.textContent = corePct + '%'; cp.style.color = corePct >= 70 ? 'var(--green)' : 'var(--gold)'; }
+  };
+  const s = document.createElement('script');
+  s.id = 'bh-fin-script';
+  s.src = SCRIPT_URL + '?callback=__bhFinCB&action=financials&t=' + Date.now();
+  document.head.appendChild(s);
+}
 
 setDate();
 loadLive();
