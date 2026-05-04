@@ -154,11 +154,11 @@
     <button class="nav-item active" onclick="showPage('summary')"><span class="nav-icon">⚡</span> Daily Summary</button>
     <button class="nav-item" onclick="showPage('members')"><span class="nav-icon">👥</span> All Members</button>
     <div class="nav-section">Retention</div>
-    <button class="nav-item" onclick="showPage('risk')"><span class="nav-icon">⚠️</span> At-Risk Members</button>
+    <button class="nav-item" onclick="showPage('risk');loadOnDemand('atrisk')"><span class="nav-icon">⚠️</span> At-Risk Members</button>
     <button class="nav-item" onclick="showPage('expiring')"><span class="nav-icon">🗓</span> New & Expiring</button>
     <div class="nav-section">Classes</div>
-    <button class="nav-item" onclick="showPage('signins')"><span class="nav-icon">📊</span> Class Usage</button>
-    <button class="nav-item" onclick="showPage('milestones')"><span class="nav-icon">🏆</span> Milestones</button>
+    <button class="nav-item" onclick="showPage('signins');loadOnDemand('classusage')"><span class="nav-icon">📊</span> Class Usage</button>
+    <button class="nav-item" onclick="showPage('milestones');loadOnDemand('milestones')"><span class="nav-icon">🏆</span> Milestones</button>
     <div class="nav-section">Business</div>
     <button class="nav-item" onclick="showPage('financials');loadFinancials();loadFinancialHealthMetrics()"><span class="nav-icon">💰</span> Financials</button>
     <button class="nav-item" onclick="showPage('churn');loadChurnData()"><span class="nav-icon">📉</span> Churn Analysis</button>
@@ -442,7 +442,7 @@
 </main>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7hHQsEz9lTUGBc2UswIzc4Jxy2gn4gnAqlsiXZDoZpVXRoTiuFHapIH_xyks-3fA-/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxOlCuJdcTve8UDkbwLY-hrJm8gtd3BfYmaWeAC4hLph7KHcSPzIZRcgpkn2XBgyZ2S/exec';
 const pageTitles = {summary:'DAILY SUMMARY',members:'ALL MEMBERS',risk:'AT-RISK MEMBERS',expiring:'NEW & EXPIRING',signins:'CLASS USAGE',milestones:'MILESTONES',financials:'FINANCIAL HEALTH',churn:'CHURN ANALYSIS'};
 const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 let allMembersData = [];
@@ -458,12 +458,6 @@ function showPage(id){
 function setDate(){
   document.getElementById('date-badge').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'
   // Kick off secondary data loads after page is ready
-  setTimeout(function(){
-    if(typeof loadHealthMetrics === 'function') loadHealthMetrics();
-  }, 8000);
-  setTimeout(function(){
-    if(typeof loadFinancialHealthMetrics === 'function') loadFinancialHealthMetrics();
-  }, 10000);
 });
 }
 
@@ -703,7 +697,7 @@ function loadLive(){
   document.head.appendChild(script);
   setTimeout(() => {
     if(document.getElementById('status-pill').textContent.includes('CONNECTING')) setStatus('demo');
-  }, 20000);
+  }, 30000);
 }
 
 function loadFinancials(){
@@ -1306,6 +1300,32 @@ function renderChurn(rows){
       </div>`;
     }).join('')}
     </div>`;
+}
+
+function loadOnDemand(action){
+  const cbName = '__cb_' + action;
+  const old = document.getElementById('od-script-' + action);
+  if(old) old.remove();
+  window[cbName] = function(data){
+    if(data.error){ console.warn('Error loading ' + action + ':', data.error); return; }
+    if(action === 'atrisk'){
+      renderRiskTable('risk714-list',  'r714-cnt',  data.atRisk714  || [], 'badge-gold');
+      renderRiskTable('risk1529-list', 'r1529-cnt', data.atRisk1529 || [], 'badge-orange');
+      renderRiskTable('risk30-list',   'r30-cnt',   data.atRisk30   || [], 'badge-red');
+    }
+    if(action === 'classusage'){
+      const yesterday = data.signInsYesterday && data.signInsYesterday[0];
+      if(yesterday) document.getElementById('s-signins').textContent = yesterday.total || '0';
+      renderCharts(data);
+    }
+    if(action === 'milestones'){
+      renderMilestones(data.milestones || []);
+    }
+  };
+  const s = document.createElement('script');
+  s.id = 'od-script-' + action;
+  s.src = SCRIPT_URL + '?callback=' + cbName + '&action=' + action + '&t=' + Date.now();
+  document.head.appendChild(s);
 }
 
 setDate();
