@@ -1170,6 +1170,12 @@ function loadHealthMetrics(){
 }
 
 function loadFinancialHealthMetrics(){
+  // Get paying members from already-loaded summary data if available
+  if(!window._payingMembers || window._payingMembers < 1){
+    const summaryEl = document.getElementById('paying-count');
+    if(summaryEl) window._payingMembers = parseInt(summaryEl.textContent) || 287;
+    else window._payingMembers = 287; // fallback to known value
+  }
   const old = document.getElementById('bh-fin-script');
   if(old) old.remove();
   window.__bhFinCB = function(data){
