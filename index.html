@@ -1199,7 +1199,8 @@ function loadFinancialHealthMetrics(){
       if(ya!==yb) return yb-ya;
       return (MN[b.report_month]||0)-(MN[a.report_month]||0);
     });
-    const latest = sorted[0];
+    // Pick latest row with non-zero revenue
+    const latest = sorted.find(r => parseFloat(r.total_revenue) > 0) || sorted[0];
     if(!latest) return;
 
     const rev      = parseFloat(latest.total_revenue)||0;
