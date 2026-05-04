@@ -456,7 +456,15 @@ function showPage(id){
 }
 
 function setDate(){
-  document.getElementById('date-badge').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+  document.getElementById('date-badge').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'
+  // Kick off secondary data loads after page is ready
+  setTimeout(function(){
+    if(typeof loadHealthMetrics === 'function') loadHealthMetrics();
+  }, 8000);
+  setTimeout(function(){
+    if(typeof loadFinancialHealthMetrics === 'function') loadFinancialHealthMetrics();
+  }, 10000);
+});
 }
 
 function setStatus(state){
