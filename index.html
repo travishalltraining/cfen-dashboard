@@ -97,8 +97,8 @@
   .bar-label{font-size:10px;color:var(--text-mid);width:76px;flex-shrink:0;text-align:right;font-family:'DM Mono',monospace;}
   .bar-track{flex:1;height:20px;background:var(--border);border-radius:4px;overflow:hidden;position:relative;}
   .bar-fill{height:100%;border-radius:4px;transition:width 1s ease;}
-  .bar-fill.cf{background:var(--red);}
-  .bar-fill.sgpt{background:var(--blue);}
+  .bar-fill.cf{background:#F15A22;}
+  .bar-fill.sgpt{background:#888888;}
   .bar-val{font-size:10px;color:var(--text-dim);width:32px;font-family:'DM Mono',monospace;text-align:right;}
   .milestone-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
   .search-bar{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;width:100%;margin-bottom:16px;outline:none;transition:border-color 0.2s;}
@@ -184,6 +184,7 @@
         <div class="stat-card gold"><div class="stat-label">New Member Watchlist</div><div class="stat-value" id="s-watchlist">—</div><div class="stat-sub">Joined last 30 days</div></div>
         <div class="stat-card green"><div class="stat-label">Birthdays Today</div><div class="stat-value" id="s-bday">—</div><div class="stat-sub">Celebrate today 🎂</div></div>
         <div class="stat-card"><div class="stat-label">Free Members</div><div class="stat-value" id="s-free">—</div><div class="stat-sub">Active, non-paying</div></div>
+
         <div class="stat-card"><div class="stat-label">Sign-Ins Yesterday</div><div class="stat-value" id="s-signins">—</div><div class="stat-sub">Total class attendance</div></div>
         <div class="stat-card orange"><div class="stat-label">In Elements</div><div class="stat-value" id="s-elements">—</div><div class="stat-sub">Onboarding program</div></div>
       </div>
@@ -352,7 +353,7 @@
         <div class="fin-card negative">
           <div class="fin-label">PAYROLL % REVENUE</div>
           <div class="fin-value" id="bh-payroll-pct">—</div>
-          <div class="fin-sub">YTD payroll · target &lt;40%</div>
+          <div class="fin-sub">YTD payroll + coaching · target &lt;40%</div>
         </div>
         <div class="fin-card positive">
           <div class="fin-label">MEMBERSHIP REVENUE</div>
@@ -586,7 +587,8 @@ function renderData(data){
 
   // Summary
   document.getElementById('s-paying').textContent   = summary.active_memberships         || '—';
-  document.getElementById('s-free').textContent     = summary.free_members               || '—';
+  document.getElementById('s-free').textContent      = summary.free_members               || '—';
+
   document.getElementById('s-watchlist').textContent= summary.new_member_watchlist_count || newM.length;
   document.getElementById('s-bday').textContent     = summary.birthdays_today_count      || bdays.length;
   document.getElementById('s-signins').textContent  = yesterday.total                    || '0';
@@ -1216,7 +1218,7 @@ function loadFinancialHealthMetrics(){
     const paying   = window._payingMembers || 1;
 
     const revPerMember  = rev > 0 && paying > 0 ? Math.round(rev / paying) : 0;
-    const payrollPct    = ytdRev > 0 ? Math.round(ytdPayroll / ytdRev * 100) : 0;
+    const payrollPct    = ytdRev > 0 ? Math.round((ytdPayroll + ytdCoaching) / ytdRev * 100) : 0;
     const membershipPct = ytdRev > 0 ? Math.round(ytdMembership / ytdRev * 100) : 0;
     const sgptPct       = ytdRev > 0 ? Math.round(ytdSgpt / ytdRev * 100) : 0;
 
@@ -1323,10 +1325,23 @@ function loadOnDemand(action){
     if(action === 'classusage'){
       const yesterday = data.signInsYesterday && data.signInsYesterday[0];
       if(yesterday) document.getElementById('s-signins').textContent = yesterday.total || '0';
-      if(data.cfByTime)   makeBarChart('cf-time-chart',   data.cfByTime,   'class_time',        'count');
-      if(data.cfByDay)    makeDayChart('cf-day-chart',    data.cfByDay,    'class_day_of_week');
-      if(data.sgptByTime) makeBarChart('sgpt-time-chart', data.sgptByTime, 'class_time',        'count');
-      if(data.sgptByDay)  makeDayChart('sgpt-day-chart',  data.sgptByDay,  'class_day_of_week');
+      // Sort by actual time of day
+      const toMins = t => {
+        if(!t) return 0;
+        const parts = t.split(' ');
+        const ampm = parts[1];
+        let [h, m] = parts[0].split(':').map(Number);
+        if(ampm === 'PM' && h !== 12) h += 12;
+        if(ampm === 'AM' && h === 12) h = 0;
+        return h * 60 + (m||0);
+      };
+      const sortByTime = rows => [...(rows||[])].sort((a,b) => toMins(a.class_time) - toMins(b.class_time));
+      const cfTime   = sortByTime(data.cfByTime);
+      const sgptTime = sortByTime(data.sgptByTime);
+      if(cfTime.length)   makeBarChart('cf-time-chart',   cfTime,        'class_time', 'cf');
+      if(data.cfByDay)    makeDayChart('cf-day-chart',    data.cfByDay,  'cf');
+      if(sgptTime.length) makeBarChart('sgpt-time-chart', sgptTime,      'class_time', 'sgpt');
+      if(data.sgptByDay)  makeDayChart('sgpt-day-chart',  data.sgptByDay,'sgpt');
     }
     if(action === 'milestones'){
       // Use actual milestone render functions
